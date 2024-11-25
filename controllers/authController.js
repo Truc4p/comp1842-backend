@@ -71,7 +71,8 @@ exports.loginUser = async (req, res) => {
 
     jwt.sign(payload, "secret", { expiresIn: "1h" }, (err, token) => {
       if (err) throw err;
-      res.json({ token });
+      console.log("User role in backend:", user.role); // Debugging line to check the role
+      res.json({ token, role: user.role }); // Include role in the response
     });
   } catch (err) {
     console.error(err.message);

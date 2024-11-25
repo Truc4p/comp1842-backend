@@ -32,8 +32,12 @@ app.use(bodyParser.json());
 app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/auth", authRoutes);
-
 app.use("/orders", orderRoutes);
+
+// Define a route for the root URL
+app.get('/', (req, res) => {
+  res.send('Welcome to the Node.js API');
+});
 
 // Swagger setup
 const swaggerOptions = {
