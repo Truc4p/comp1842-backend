@@ -3,13 +3,22 @@ const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const role = require("../middleware/role");
 
+const validAdminKey = "secret"; // Define secret admin key
+
 exports.registerUser = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { username, password, role } = req.body;
+  const { username, password, role, adminKey } = req.body;
+
+  // console.log("Role:", role, "Admin Key:", adminKey); // Debugging line to check the role and admin key
+
+  // Validate admin key if the role is admin
+  if (role === "admin" && adminKey !== validAdminKey) {
+    return res.status(400).json({ msg: "Invalid admin key" });
+  }
 
   try {
     let user = await User.findOne({ username });
