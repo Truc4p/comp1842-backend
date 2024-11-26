@@ -74,7 +74,7 @@ router.get("/", auth, productController.getAllProducts);
  *     responses:
  *       200:
  *         description: The product description by ID
- *         contents:
+ *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Product'
@@ -105,6 +105,10 @@ router.get("/:id", auth, productController.getProductById);
  *               image:
  *                 type: string
  *                 format: binary
+ *               price:
+ *                 type: number
+ *               description:
+ *                 type: string
  *     responses:
  *       200:
  *         description: The product was successfully created
@@ -115,7 +119,6 @@ router.get("/:id", auth, productController.getProductById);
  *       500:
  *         description: Some server error
  */
-router.post("/", auth, role(["admin"]), upload.single("image"), productController.createProduct);
 
 /**
  * @swagger
@@ -146,6 +149,10 @@ router.post("/", auth, role(["admin"]), upload.single("image"), productControlle
  *               image:
  *                 type: string
  *                 format: binary
+ *               price:
+ *                 type: number
+ *               description:
+ *                 type: string
  *     responses:
  *       200:
  *         description: The product was successfully updated
@@ -158,7 +165,6 @@ router.post("/", auth, role(["admin"]), upload.single("image"), productControlle
  *       500:
  *         description: Some server error
  */
-router.put("/:id", auth, role(["admin"]), upload.single("image"), productController.updateProduct);
 
 /**
  * @swagger

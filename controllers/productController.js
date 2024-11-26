@@ -24,10 +24,10 @@ exports.getProductById = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const { name, categoryId } = req.body;
+    const { name, categoryId, price, description } = req.body;
     const image = req.file ? req.file.path : null;
 
-    const product = new Product({ name, category: categoryId, image });
+    const product = new Product({ name, category: categoryId, image, price, description });
     await product.save();
     res.status(201).json(product);
   } catch (err) {
@@ -37,10 +37,10 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   try {
-    const { name, categoryId } = req.body;
+    const { name, categoryId, price, description } = req.body;
     const image = req.file ? req.file.path : null;
 
-    const updateData = { name, category: categoryId };
+    const updateData = { name, category: categoryId, price, description };
     if (image) {
       updateData.image = image;
     }
