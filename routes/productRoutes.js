@@ -3,6 +3,31 @@ const router = express.Router();
 const productController = require("../controllers/productController");
 const auth = require("../middleware/auth");
 const role = require("../middleware/role");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+
+// Ensure the uploads directory exists
+const uploadsDir = path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/"); // Set the destination folder for uploaded files
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname); // Set the file name
+  },
+});
+const upload = multer({ storage: storage });
+
+router.post("/", auth, role(["admin"]), upload.single("image"), productController.createProduct);
+router.put("/:id", auth, role(["admin"]), upload.single("image"), productController.updateProduct);
+
+module.exports = router;
 
 /**
  * @swagger
@@ -69,9 +94,17 @@ router.get("/:id", auth, productController.getProductById);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/Product'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               categoryId:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: The product was successfully created
@@ -82,7 +115,7 @@ router.get("/:id", auth, productController.getProductById);
  *       500:
  *         description: Some server error
  */
-router.post("/", auth, role(["admin"]), productController.createProduct);
+router.post("/", auth, role(["admin"]), upload.single("image"), productController.createProduct);
 
 /**
  * @swagger
@@ -102,9 +135,17 @@ router.post("/", auth, role(["admin"]), productController.createProduct);
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/Product'
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               categoryId:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       200:
  *         description: The product was successfully updated
@@ -117,7 +158,7 @@ router.post("/", auth, role(["admin"]), productController.createProduct);
  *       500:
  *         description: Some server error
  */
-router.put("/:id", auth, role(["admin"]), productController.updateProduct);
+router.put("/:id", auth, role(["admin"]), upload.single("image"), productController.updateProduct);
 
 /**
  * @swagger

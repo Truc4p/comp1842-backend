@@ -10,6 +10,10 @@ const productSchema = new mongoose.Schema({
     ref: "Category",
     required: true,
   },
+  image: {
+    type: String, // use String to store the URL or path of the image
+    required: false, // Set to true if the image is mandatory
+  },
 });
 
 const Product = mongoose.model("Product", productSchema);

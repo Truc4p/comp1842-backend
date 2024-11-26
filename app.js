@@ -9,6 +9,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const authRoutes = require("./routes/authRoutes");
 const connectDB = require("./db");
 const orderRoutes = require("./routes/orderRoutes");
+const path = require("path"); // Import the path module
 
 const app = express();
 
@@ -28,6 +29,12 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use(bodyParser.json());
+
+// // Serve the uploads directory as static
+// app.use('/uploads', express.static('uploads'));
+
+// Serve static files from the "uploads" directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);

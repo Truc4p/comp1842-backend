@@ -25,9 +25,9 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const { name, categoryId } = req.body;
+    const image = req.file ? req.file.path : null;
 
-    console.log({ name, categoryId });
-    const product = new Product({ name, category: categoryId });
+    const product = new Product({ name, category: categoryId, image });
     await product.save();
     res.status(201).json(product);
   } catch (err) {
@@ -37,12 +37,15 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   try {
-    const { name, category } = req.body;
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { name, category },
-      { new: true }
-    );
+    const { name, categoryId } = req.body;
+    const image = req.file ? req.file.path : null;
+
+    const updateData = { name, category: categoryId };
+    if (image) {
+      updateData.image = image;
+    }
+
+    const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (product) {
       res.json(product);
     } else {
