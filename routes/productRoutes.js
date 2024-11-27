@@ -27,6 +27,10 @@ const upload = multer({ storage: storage });
 router.post("/", auth, role(["admin"]), upload.single("image"), productController.createProduct);
 router.put("/:id", auth, role(["admin"]), upload.single("image"), productController.updateProduct);
 
+// Allow unauthenticated requests to get all products and get product by ID
+router.get("/", productController.getAllProducts);
+router.get("/:id", productController.getProductById);
+
 module.exports = router;
 
 /**
