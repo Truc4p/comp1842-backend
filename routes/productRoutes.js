@@ -113,6 +113,8 @@ router.get("/:id", auth, productController.getProductById);
  *                 type: number
  *               description:
  *                 type: string
+ *               stockQuantity:
+ *                 type: number
  *     responses:
  *       200:
  *         description: The product was successfully created
@@ -157,6 +159,8 @@ router.get("/:id", auth, productController.getProductById);
  *                 type: number
  *               description:
  *                 type: string
+ *               stockQuantity:
+ *                 type: number
  *     responses:
  *       200:
  *         description: The product was successfully updated
