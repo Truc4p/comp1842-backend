@@ -106,12 +106,7 @@ module.exports = router;
  *             type: object
  *             properties:
  *               name:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                   vi:
- *                     type: string
+ *                 type: string
  *               categoryId:
  *                 type: string
  *               image:
@@ -120,12 +115,7 @@ module.exports = router;
  *               price:
  *                 type: number
  *               description:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                   vi:
- *                     type: string
+ *                 type: string
  *               stockQuantity:
  *                 type: number
  *     responses:
@@ -162,12 +152,7 @@ module.exports = router;
  *             type: object
  *             properties:
  *               name:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                   vi:
- *                     type: string
+ *                 type: string
  *               categoryId:
  *                 type: string
  *               image:
@@ -176,12 +161,7 @@ module.exports = router;
  *               price:
  *                 type: number
  *               description:
- *                 type: object
- *                 properties:
- *                   en:
- *                     type: string
- *                   vi:
- *                     type: string
+ *                 type: string
  *               stockQuantity:
  *                 type: number
  *     responses:

@@ -27,28 +27,10 @@ exports.createProduct = async (req, res) => {
     const { name, categoryId, price, description, stockQuantity } = req.body;
     const image = req.file ? req.file.path : null;
 
-    const product = new Product({
-      name: {
-        en: name.en,
-        vi: name.vi,
-      },
-      category: categoryId,
-      image,
-      price,
-      description: {
-        en: description.en,
-        vi: description.vi,
-      },
-      stockQuantity,
-    });
-
-    // Log the product object
-    console.log("Product to be saved:", product);
-
+    const product = new Product({ name, category: categoryId, image, price, description, stockQuantity });
     await product.save();
     res.status(201).json(product);
   } catch (err) {
-    console.error("Error creating product:", err); // Log the error
     res.status(500).send("Server Error");
   }
 };
@@ -58,19 +40,7 @@ exports.updateProduct = async (req, res) => {
     const { name, categoryId, price, description, stockQuantity } = req.body;
     const image = req.file ? req.file.path : null;
 
-    const updateData = {
-      name: {
-        en: name.en,
-        vi: name.vi,
-      },
-      category: categoryId,
-      price,
-      description: {
-        en: description.en,
-        vi: description.vi,
-      },
-      stockQuantity,
-    };
+    const updateData = { name, category: categoryId, price, description, stockQuantity };
     if (image) {
       updateData.image = image;
     }
@@ -82,7 +52,6 @@ exports.updateProduct = async (req, res) => {
       res.status(404).send("Product not found");
     }
   } catch (err) {
-    console.error("Error updating product:", err); // Log the error
     res.status(500).send("Server Error");
   }
 };
