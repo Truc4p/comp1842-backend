@@ -29,7 +29,7 @@ const role = require("../middleware/role");
  *               items:
  *                 $ref: '#/components/schemas/Category'
  */
-router.get("/", auth, categoryController.getAllCategories);
+router.get("/", categoryController.getAllCategories);
 
 /**
  * @swagger
@@ -56,7 +56,7 @@ router.get("/", auth, categoryController.getAllCategories);
  *       404:
  *         description: Category not found
  */
-router.get("/:id", auth, categoryController.getCategoryById);
+router.get("/:id", categoryController.getCategoryById);
 
 /**
  * @swagger
