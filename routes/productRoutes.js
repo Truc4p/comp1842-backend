@@ -25,11 +25,16 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.post("/", auth, role(["admin"]), upload.single("image"), productController.createProduct);
+
+
+
 router.put("/:id", auth, role(["admin"]), upload.single("image"), productController.updateProduct);
 
 // Allow unauthenticated requests to get all products and get product by ID
 router.get("/", productController.getAllProducts);
 router.get("/:id", productController.getProductById);
+
+router.delete("/:id", auth, role(["admin"]), productController.deleteProduct);
 
 module.exports = router;
 
@@ -58,7 +63,6 @@ module.exports = router;
  *               items:
  *                 $ref: '#/components/schemas/Product'
  */
-router.get("/", auth, productController.getAllProducts);
 
 /**
  * @swagger
@@ -85,7 +89,6 @@ router.get("/", auth, productController.getAllProducts);
  *       404:
  *         description: Product not found
  */
-router.get("/:id", auth, productController.getProductById);
 
 /**
  * @swagger
@@ -103,7 +106,12 @@ router.get("/:id", auth, productController.getProductById);
  *             type: object
  *             properties:
  *               name:
- *                 type: string
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                   vi:
+ *                     type: string
  *               categoryId:
  *                 type: string
  *               image:
@@ -112,7 +120,12 @@ router.get("/:id", auth, productController.getProductById);
  *               price:
  *                 type: number
  *               description:
- *                 type: string
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                   vi:
+ *                     type: string
  *               stockQuantity:
  *                 type: number
  *     responses:
@@ -149,7 +162,12 @@ router.get("/:id", auth, productController.getProductById);
  *             type: object
  *             properties:
  *               name:
- *                 type: string
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                   vi:
+ *                     type: string
  *               categoryId:
  *                 type: string
  *               image:
@@ -158,7 +176,12 @@ router.get("/:id", auth, productController.getProductById);
  *               price:
  *                 type: number
  *               description:
- *                 type: string
+ *                 type: object
+ *                 properties:
+ *                   en:
+ *                     type: string
+ *                   vi:
+ *                     type: string
  *               stockQuantity:
  *                 type: number
  *     responses:
@@ -195,6 +218,3 @@ router.get("/:id", auth, productController.getProductById);
  *       404:
  *         description: The product was not found
  */
-router.delete("/:id", auth, role(["admin"]), productController.deleteProduct);
-
-module.exports = router;

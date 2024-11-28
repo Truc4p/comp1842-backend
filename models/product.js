@@ -2,8 +2,14 @@ const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema({
   name: {
-    type: String,
-    required: true,
+    en: {
+      type: String,
+      required: true,
+    },
+    vi: {
+      type: String,
+      required: true,
+    },
   },
   category: {
     type: mongoose.Schema.Types.ObjectId,
@@ -15,8 +21,14 @@ const productSchema = new mongoose.Schema({
     required: false, // Set to true if the image is mandatory
   },
   description: {
-    type: String,
-    required: false,
+    en: {
+      type: String,
+      required: false,
+    },
+    vi: {
+      type: String,
+      required: false,
+    },
   },
   price: {
     type: Number,
