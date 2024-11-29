@@ -167,6 +167,6 @@ router.delete("/:id", auth, role(["customer"]), orderController.deleteOrder);
  *               items:
  *                 $ref: '#/components/schemas/Order'
  */
-router.get("/:id", auth, role(["admin"]), orderController.getOrdersByUser);
+router.get("/:id", auth, role(["admin", "customer"]), orderController.getOrdersByUser);
 
 module.exports = router;

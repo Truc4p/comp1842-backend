@@ -24,6 +24,12 @@ const OrderSchema = new Schema({
   },
   products: [ProductSchema], // Array of products, each with quantity and price
 
+  paymentMethod: {
+    type: String,
+    enum: ["cash", "credit_card", "paypal"],
+    required: true,
+  },
+  
   orderDate: {
     type: Date,
     default: Date.now,

@@ -4,11 +4,14 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
+
 const productRoutes = require("./routes/productRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const authRoutes = require("./routes/authRoutes");
-const connectDB = require("./db");
 const orderRoutes = require("./routes/orderRoutes");
+const userRoutes = require("./routes/userRoutes");
+
+const connectDB = require("./db");
 const path = require("path"); // Import the path module
 
 const app = express();
@@ -30,9 +33,6 @@ app.use(limiter);
 
 app.use(bodyParser.json());
 
-// // Serve the uploads directory as static
-// app.use('/uploads', express.static('uploads'));
-
 // Serve static files from the "uploads" directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -40,6 +40,7 @@ app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
+app.use("/users", userRoutes);
 
 // Define a route for the root URL
 app.get('/', (req, res) => {

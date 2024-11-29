@@ -16,6 +16,19 @@ const userSchema = new mongoose.Schema({
     enum: ["admin", "customer"],
     default: "customer",
   },
+  email: {
+    type: String,
+    required: false,
+  },
+  phone: {
+    type: String,
+    required: false,
+  },
+  address: {
+    type: String,
+    required: false,
+  },
+
 });
 
 // Hash password before saving the user

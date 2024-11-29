@@ -25,11 +25,15 @@ exports.getAllOrders = async (req, res) => {
 
 // User Operation: Create an Order
 exports.createOrder = async (req, res) => {
-
   try {
-    const { products } = req.body;
+    const { products, paymentMethod } = req.body;
     console.log("Products from request body:", products);
-     
+    console.log("Payment method from request body:", paymentMethod);
+
+    if (!products || !paymentMethod) {
+      return res.status(400).send({ error: 'Products and payment method are required' });
+    }
+
     const userId = req.user.id;
     console.log("User ID from request:", userId);
 
@@ -39,17 +43,16 @@ exports.createOrder = async (req, res) => {
     const order = new Order({
       user: userId,
       products,
+      paymentMethod,
+      orderDate: new Date(),
     });
-    console.log("Order to be saved:", order);
 
     await order.save();
-    // return res.status(200).send("Order created");
-    console.log("Order saved successfully:", order);
-    res.status(201).json(order);
-
-  } catch (err) {
-    console.error("Error creating order:", err);
-    res.status(500).send("Server Error");
+    console.log("Order to be saved:", order);
+    res.status(201).send(order);
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).send({ error: 'Internal Server Error' });
   }
 };
 

@@ -74,14 +74,14 @@ exports.loginUser = async (req, res) => {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
       },
     };
 
     jwt.sign(payload, "secret", { expiresIn: "1h" }, (err, token) => {
       if (err) throw err;
       console.log("User role in backend:", user.role); // Debugging line to check the role
-      res.json({ token, role: user.role }); // Include role in the response
+      res.json({ token, role: user.role, userId: user.id }); // Include role and userId in the response
     });
   } catch (err) {
     console.error(err.message);
