@@ -34,6 +34,18 @@ const OrderSchema = new Schema({
     type: Date,
     default: Date.now,
   },
+
+  status: {
+    type: String,
+    enum: ["pending", "processing", "shipped", "delivered"],
+    default: "pending",
+  },
+
+  totalPrice: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
 });
 
 const Order = mongoose.model("Order", OrderSchema);

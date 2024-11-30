@@ -4,6 +4,7 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./swagger");
+const morgan = require("morgan"); // Import morgan
 
 const productRoutes = require("./routes/productRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
@@ -35,6 +36,9 @@ app.use(bodyParser.json());
 
 // Serve static files from the "uploads" directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Use morgan to log requests to the console
+app.use(morgan('combined'));
 
 app.use("/products", productRoutes);
 app.use("/categories", categoryRoutes);

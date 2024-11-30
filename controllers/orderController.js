@@ -26,12 +26,14 @@ exports.getAllOrders = async (req, res) => {
 // User Operation: Create an Order
 exports.createOrder = async (req, res) => {
   try {
-    const { products, paymentMethod } = req.body;
+    const { products, paymentMethod, status, totalPrice } = req.body;
     console.log("Products from request body:", products);
     console.log("Payment method from request body:", paymentMethod);
+    console.log("Status from request body:", status);
+    console.log("Total price from request body:", totalPrice);
 
-    if (!products || !paymentMethod) {
-      return res.status(400).send({ error: 'Products and payment method are required' });
+    if (!products || !paymentMethod || !totalPrice) {
+      return res.status(400).send({ error: 'Products, payment method, and total price are required' });
     }
 
     const userId = req.user.id;
@@ -44,6 +46,8 @@ exports.createOrder = async (req, res) => {
       user: userId,
       products,
       paymentMethod,
+      status: status || "pending",
+      totalPrice,
       orderDate: new Date(),
     });
 
@@ -59,7 +63,7 @@ exports.createOrder = async (req, res) => {
 // User Operation: Edit an Order
 exports.updateOrder = async (req, res) => {
   try {
-    const { products } = req.body;
+    const { products, status, totalPrice } = req.body;
     const orderId = req.params.id;
 
     const userId = req.user.id;
@@ -68,13 +72,11 @@ exports.updateOrder = async (req, res) => {
     const user = req.user;
     console.log("User:", user);
 
-    console.log("Request Body:", req.body);
-    console.log("Order ID:", orderId);
-    console.log("User ID:", userId);
+    const updateData = { products, status, totalPrice };
 
     const order = await Order.findOneAndUpdate(
       { _id: orderId, user: userId },
-      { products },
+      updateData,
       { new: true }
     );
 
@@ -138,23 +140,6 @@ exports.getOrdersByUser = async (req, res) => {
   }
 };
 
-// User Operation: Get all Orders by User ID
-exports.getOrdersByUserId = async (req, res) => {
-  try {
-    const userId = req.params.id;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ msg: "User not found" });
-    }
-
-    const orders = await Order.find({ user: user._id }).populate("products.productId");
-    res.json(orders);
-  } catch (err) {
-    res.status(500).send("Server Error");
-  }
-};
-
 // User Operation: Get an Order by OrderID
 exports.getOrderByOrderId = async (req, res) => {
   try {
@@ -177,3 +162,19 @@ exports.getOrderByOrderId = async (req, res) => {
   }
 };
 
+// User Operation: Get all Orders by User ID
+exports.getOrdersByUserId = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    const orders = await Order.find({ user: user._id }).populate("products.productId");
+    res.json(orders);
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+};

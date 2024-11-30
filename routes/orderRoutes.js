@@ -20,6 +20,7 @@ const role = require("../middleware/role");
  *       required:
  *         - user
  *         - products
+ *         - paymentMethod
  *       properties:
  *         user:
  *           type: string
@@ -35,13 +36,25 @@ const role = require("../middleware/role");
  *               quantity:
  *                 type: integer
  *                 description: The quantity of the product
+ *         paymentMethod:
+ *           type: string
+ *           enum: ["cash", "credit_card", "paypal"]
+ *           description: The payment method
+ *         status:
+ *           type: string
+ *           enum: ["pending", "processing", "shipped", "delivered"]
+ *           description: The order status
+ *         totalPrice:
+ *           type: number
+ *           description: The total price of the order
  *       example:
  *         user: "60d0fe4f5311236168a109ca"
  *         products:
  *           - productId: "60d0fe4f5311236168a109cb"
  *             quantity: 2
- *           - productId: "60d0fe4f5311236168a109cc"
- *             quantity: 1
+ *         paymentMethod: "credit_card"
+ *         status: "pending"
+ *         totalPrice: 100.0
  */
 
 /**
@@ -142,7 +155,6 @@ router.delete("/:id", auth, role(["customer"]), orderController.deleteOrder);
  *   get:
  *     summary: Retrieve orders by user ID or username
  *     tags: [Orders]
- * 
  *     parameters:
  *       - in: query
  *         name: id
@@ -156,7 +168,6 @@ router.delete("/:id", auth, role(["customer"]), orderController.deleteOrder);
  *           type: string
  *         required: false
  *         description: The username
- * 
  *     responses:
  *       200:
  *         description: A list of orders
