@@ -138,6 +138,23 @@ exports.getOrdersByUser = async (req, res) => {
   }
 };
 
+// User Operation: Get all Orders by User ID
+exports.getOrdersByUserId = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+
+    const orders = await Order.find({ user: user._id }).populate("products.productId");
+    res.json(orders);
+  } catch (err) {
+    res.status(500).send("Server Error");
+  }
+};
+
 // User Operation: Get an Order by OrderID
 exports.getOrderByOrderId = async (req, res) => {
   try {

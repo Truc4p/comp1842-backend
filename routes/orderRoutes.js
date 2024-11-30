@@ -138,7 +138,7 @@ router.delete("/:id", auth, role(["customer"]), orderController.deleteOrder);
 
 /**
  * @swagger
- * /orders/{id}:
+ * /orders/user/{id}:
  *   get:
  *     summary: Retrieve orders by user ID or username
  *     tags: [Orders]
@@ -167,7 +167,7 @@ router.delete("/:id", auth, role(["customer"]), orderController.deleteOrder);
  *               items:
  *                 $ref: '#/components/schemas/Order'
  */
-router.get("/:id", auth, role(["admin", "customer"]), orderController.getOrdersByUser);
+router.get("/user/:id", auth, role(["admin", "customer"]), orderController.getOrdersByUserId);
 
 /**
  * @swagger
