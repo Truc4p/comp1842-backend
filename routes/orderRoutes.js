@@ -169,4 +169,29 @@ router.delete("/:id", auth, role(["customer"]), orderController.deleteOrder);
  */
 router.get("/:id", auth, role(["admin", "customer"]), orderController.getOrdersByUser);
 
+/**
+ * @swagger
+ * /orders/order/{id}:
+ *   get:
+ *     summary: Retrieve an order by order ID
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The order ID
+ *     responses:
+ *       200:
+ *         description: The order details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Order'
+ *       404:
+ *         description: Order not found
+ */
+router.get("/order/:id", auth, role(["admin", "customer"]), orderController.getOrderByOrderId);
+
 module.exports = router;

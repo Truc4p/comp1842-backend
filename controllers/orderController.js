@@ -115,7 +115,7 @@ exports.deleteOrder = async (req, res) => {
   }
 };
 
-// User Operation: Get all Orders by User ID
+// User Operation: Get all Orders by Username or User ID
 exports.getOrdersByUser = async (req, res) => {
   try {
     const { id, username } = req.query;
@@ -134,6 +134,28 @@ exports.getOrdersByUser = async (req, res) => {
     const orders = await Order.find({ user: user._id }).populate("products.productId");
     res.json(orders);
   } catch (err) {
+    res.status(500).send("Server Error");
+  }
+};
+
+// User Operation: Get an Order by OrderID
+exports.getOrderByOrderId = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+
+    console.log("Order ID:", orderId);
+
+    const order = await Order.findOne({ _id: orderId }).populate("products.productId");
+
+    if (order) {
+      console.log("Order retrieved successfully:", order);
+      res.json(order);
+    } else {
+      console.log("Order not found");
+      res.status(404).send("Order not found");
+    }
+  } catch (err) {
+    console.error("Error retrieving order:", err);
     res.status(500).send("Server Error");
   }
 };
