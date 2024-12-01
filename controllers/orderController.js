@@ -60,41 +60,79 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// User Operation: Edit an Order
-exports.updateOrder = async (req, res) => {
+// // User Operation: Edit an Order
+// exports.updateOrder = async (req, res) => {
+//   try {
+//     const { products, status, totalPrice } = req.body;
+//     const orderId = req.params.id;
+//     console.log("order ID from request body:", orderId);
+
+//     const userId = req.user.id;
+//     console.log("Admin ID from request:", userId);
+
+//     const user = req.user;
+//     console.log("Admin:", user);
+
+//     const updateData = { products, status, totalPrice };
+
+//     let query = { _id: orderId };
+//     if (user.role !== 'admin') {
+//       query.user = userId;
+//     }
+
+//     const order = await Order.findOneAndUpdate(query, updateData, { new: true });
+
+//     if (order) {
+//       console.log("Order updated successfully:", order);
+//       res.json(order);
+//     } else {
+//       console.log("Order not found");
+//       res.status(404).send("Order not found");
+//     }
+//   } catch (err) {
+//     console.error("Error updating order:", err);
+//     res.status(500).send("Server Error");
+//   }
+// };
+
+// User Operation: Update Order Status
+exports.updateOrderStatus = async (req, res) => {
   try {
-    const { products, status, totalPrice } = req.body;
+    const { status } = req.body;
     const orderId = req.params.id;
 
+    console.log("Order ID:", orderId);
+    console.log("New status:", status);
+
     const userId = req.user.id;
-    console.log("User ID from request:", userId);
+    console.log("User ID:", userId);
 
     const user = req.user;
     console.log("User:", user);
 
-    const updateData = { products, status, totalPrice };
-
-    const order = await Order.findOneAndUpdate(
-      { _id: orderId, user: userId },
-      updateData,
-      { new: true }
-    );
+    // Define the query
+    let query = { _id: orderId };
+    if (user.role !== 'admin') {
+      query.user = userId;
+    }
+    
+    const order = await Order.findOneAndUpdate(query, { status }, { new: true });
 
     if (order) {
-      console.log("Order updated successfully:", order);
+      console.log("Order status updated successfully:", order);
       res.json(order);
     } else {
       console.log("Order not found");
       res.status(404).send("Order not found");
     }
   } catch (err) {
-    console.error("Error updating order:", err);
+    console.error("Error updating order status:", err);
     res.status(500).send("Server Error");
   }
 };
 
 // User Operation: Delete an Order
-exports.deleteOrder = async (req, res) => {
+exports.deleteOrderByCustomer = async (req, res) => {
   try {
     const orderId = req.params.id;
     const userId = req.user.id;
@@ -103,6 +141,28 @@ exports.deleteOrder = async (req, res) => {
     console.log("User ID:", userId);
 
     const order = await Order.findOneAndDelete({ _id: orderId, user: userId });
+
+    if (order) {
+      console.log("Order deleted successfully:", order);
+      res.status(204).send();
+    } else {
+      console.log("Order not found");
+      res.status(404).send("Order not found");
+    }
+  } catch (err) {
+    console.error("Error deleting order:", err);
+    res.status(500).send("Server Error");
+  }
+};
+
+// User Operation: Delete an Order
+exports.deleteOrderByAdmin = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+
+    console.log("Order ID:", orderId);
+
+    const order = await Order.findOneAndDelete({ _id: orderId });
 
     if (order) {
       console.log("Order deleted successfully:", order);

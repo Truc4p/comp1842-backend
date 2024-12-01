@@ -126,7 +126,7 @@ router.post("/", auth, role(["customer"]), orderController.createOrder);
  *       404:
  *         description: Order not found
  */
-router.put("/:id", auth, role(["customer"]), orderController.updateOrder);
+router.put("/:id", auth, role(["admin"]), orderController.updateOrderStatus);
 
 /**
  * @swagger
@@ -147,7 +147,28 @@ router.put("/:id", auth, role(["customer"]), orderController.updateOrder);
  *       404:
  *         description: Order not found
  */
-router.delete("/:id", auth, role(["customer"]), orderController.deleteOrder);
+router.delete("/:id", auth, role(["customer"]), orderController.deleteOrderByCustomer);
+
+/**
+ * @swagger
+ * /orders/admin/{id}:
+ *   delete:
+ *     summary: Delete an order
+ *     tags: [Orders]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The order ID
+ *     responses:
+ *       204:
+ *         description: No content
+ *       404:
+ *         description: Order not found
+ */
+router.delete("/admin/:id", auth, role(["admin"]), orderController.deleteOrderByAdmin);
 
 /**
  * @swagger
