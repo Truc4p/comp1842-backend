@@ -1,7 +1,7 @@
 const User = require("../models/user");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
-const role = require("../middleware/role");
+// const role = require("../middleware/role");
 
 const validAdminKey = "secret"; // Define secret admin key
 
@@ -89,12 +89,12 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-exports.getUser = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select("-password");
-    res.json(user);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server error");
-  }
-};
+// exports.getUser = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user.id).select("-password");
+//     res.json(user);
+//   } catch (err) {
+//     console.error(err.message);
+//     res.status(500).send("Server error");
+//   }
+// };
