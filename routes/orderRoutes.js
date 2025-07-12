@@ -42,7 +42,7 @@ const role = require("../middleware/role");
  *           description: The payment method
  *         status:
  *           type: string
- *           enum: ["pending", "processing", "shipped", "delivered"]
+ *           enum: ["processing", "shipping", "completed"]
  *           description: The order status
  *         totalPrice:
  *           type: number
@@ -53,7 +53,7 @@ const role = require("../middleware/role");
  *           - productId: "60d0fe4f5311236168a109cb"
  *             quantity: 2
  *         paymentMethod: "credit_card"
- *         status: "pending"
+ *         status: "processing"
  *         totalPrice: 100.0
  */
 

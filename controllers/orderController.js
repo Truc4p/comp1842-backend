@@ -46,7 +46,7 @@ exports.createOrder = async (req, res) => {
       user: userId,
       products,
       paymentMethod,
-      status: status || "pending",
+      status: status || "processing",
       totalPrice,
       orderDate: new Date(),
     });
