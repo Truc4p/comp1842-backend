@@ -1,4 +1,20 @@
 const Product = require("../models/product");
+const fs = require("fs");
+const path = require("path");
+
+// Utility function to delete old image file
+const deleteImageFile = (imagePath) => {
+  if (imagePath) {
+    const fullPath = path.join(__dirname, '../', imagePath);
+    fs.unlink(fullPath, (err) => {
+      if (err) {
+        console.error('Error deleting old image file:', err);
+      } else {
+        console.log('Old image file deleted successfully:', imagePath);
+      }
+    });
+  }
+};
 
 exports.getAllProducts = async (req, res) => {
   try {
@@ -38,34 +54,64 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { name, categoryId, price, description, stockQuantity } = req.body;
-    const image = req.file ? req.file.path : null;
+    const newImage = req.file ? req.file.path : null;
+
+    // First, get the current product to access the old image path
+    const currentProduct = await Product.findById(req.params.id);
+    if (!currentProduct) {
+      // If new image was uploaded but product not found, clean up the uploaded file
+      if (newImage) {
+        deleteImageFile(newImage);
+      }
+      return res.status(404).send("Product not found");
+    }
 
     const updateData = { name, category: categoryId, price, description, stockQuantity };
-    if (image) {
-      updateData.image = image;
+    
+    // If a new image is uploaded, handle the old image deletion
+    if (newImage) {
+      // Set the new image path
+      updateData.image = newImage;
     }
 
+    // Update the product in database
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    if (product) {
-      res.json(product);
-    } else {
-      res.status(404).send("Product not found");
+    
+    // Only delete the old image after successful database update
+    if (newImage && currentProduct.image) {
+      deleteImageFile(currentProduct.image);
     }
+    
+    res.json(product);
   } catch (err) {
+    console.error("Error updating product:", err);
+    
+    // If database update failed and we have a new image, clean it up
+    if (req.file && req.file.path) {
+      deleteImageFile(req.file.path);
+    }
+    
     res.status(500).send("Server Error");
   }
 };
 
 exports.deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-    if (product) {
-      res.status(204).send();
-    } else {
-      res.status(404).send("Product not found");
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).send("Product not found");
     }
+
+    // Delete the associated image file if it exists
+    if (product.image) {
+      deleteImageFile(product.image);
+    }
+
+    // Delete the product from database
+    await Product.findByIdAndDelete(req.params.id);
+    res.status(204).send();
   } catch (err) {
-    console.error("Error deleting product:", err); // Log the error
+    console.error("Error deleting product:", err);
     res.status(500).send("Server Error");
   }
 };
