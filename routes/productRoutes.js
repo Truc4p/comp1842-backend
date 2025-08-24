@@ -24,11 +24,11 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-router.post("/", auth, role(["admin"]), upload.array("images", 10), productController.createProduct);
+router.post("/", auth, role(["admin"]), upload.single("image"), productController.createProduct);
 
 
 
-router.put("/:id", auth, role(["admin"]), upload.array("images", 10), productController.updateProduct);
+router.put("/:id", auth, role(["admin"]), upload.single("image"), productController.updateProduct);
 
 // Allow unauthenticated requests to get all products and get product by ID
 router.get("/", productController.getAllProducts);
@@ -109,11 +109,9 @@ module.exports = router;
  *                 type: string
  *               categoryId:
  *                 type: string
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
  *               price:
  *                 type: number
  *               description:
@@ -157,11 +155,9 @@ module.exports = router;
  *                 type: string
  *               categoryId:
  *                 type: string
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
+ *               image:
+ *                 type: string
+ *                 format: binary
  *               price:
  *                 type: number
  *               description:
