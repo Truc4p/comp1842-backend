@@ -16,6 +16,15 @@ const deleteImageFile = (imagePath) => {
   }
 };
 
+// Utility function to delete multiple image files
+const deleteImageFiles = (imagePaths) => {
+  if (imagePaths && Array.isArray(imagePaths)) {
+    imagePaths.forEach(imagePath => {
+      deleteImageFile(imagePath);
+    });
+  }
+};
+
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find().populate("category");
@@ -41,12 +50,27 @@ exports.getProductById = async (req, res) => {
 exports.createProduct = async (req, res) => {
   try {
     const { name, categoryId, price, description, stockQuantity } = req.body;
-    const image = req.file ? req.file.path : null;
+    const images = req.files ? req.files.map(file => file.path) : [];
 
-    const product = new Product({ name, category: categoryId, image, price, description, stockQuantity });
+    // Set the first image as the main image for backward compatibility
+    const image = images.length > 0 ? images[0] : null;
+
+    const product = new Product({ 
+      name, 
+      category: categoryId, 
+      images, 
+      image, // Set backward compatibility field
+      price, 
+      description, 
+      stockQuantity 
+    });
     await product.save();
     res.status(201).json(product);
   } catch (err) {
+    // If product creation fails and we have uploaded files, clean them up
+    if (req.files && req.files.length > 0) {
+      deleteImageFiles(req.files.map(file => file.path));
+    }
     res.status(500).send("Server Error");
   }
 };
@@ -54,41 +78,49 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { name, categoryId, price, description, stockQuantity } = req.body;
-    const newImage = req.file ? req.file.path : null;
+    const newImages = req.files ? req.files.map(file => file.path) : [];
 
-    // First, get the current product to access the old image path
+    // First, get the current product to access the old image paths
     const currentProduct = await Product.findById(req.params.id);
     if (!currentProduct) {
-      // If new image was uploaded but product not found, clean up the uploaded file
-      if (newImage) {
-        deleteImageFile(newImage);
+      // If new images were uploaded but product not found, clean up the uploaded files
+      if (newImages.length > 0) {
+        deleteImageFiles(newImages);
       }
       return res.status(404).send("Product not found");
     }
 
     const updateData = { name, category: categoryId, price, description, stockQuantity };
     
-    // If a new image is uploaded, handle the old image deletion
-    if (newImage) {
-      // Set the new image path
-      updateData.image = newImage;
+    // If new images are uploaded, handle the old images deletion
+    if (newImages.length > 0) {
+      // Set the new image paths
+      updateData.images = newImages;
+      // Set the first image as the main image for backward compatibility
+      updateData.image = newImages[0];
     }
 
     // Update the product in database
     const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
     
-    // Only delete the old image after successful database update
-    if (newImage && currentProduct.image) {
-      deleteImageFile(currentProduct.image);
+    // Only delete the old images after successful database update
+    if (newImages.length > 0) {
+      if (currentProduct.images && currentProduct.images.length > 0) {
+        deleteImageFiles(currentProduct.images);
+      }
+      // Handle backward compatibility - delete old single image if it exists
+      if (currentProduct.image) {
+        deleteImageFile(currentProduct.image);
+      }
     }
     
     res.json(product);
   } catch (err) {
     console.error("Error updating product:", err);
     
-    // If database update failed and we have a new image, clean it up
-    if (req.file && req.file.path) {
-      deleteImageFile(req.file.path);
+    // If database update failed and we have new images, clean them up
+    if (req.files && req.files.length > 0) {
+      deleteImageFiles(req.files.map(file => file.path));
     }
     
     res.status(500).send("Server Error");
@@ -102,7 +134,12 @@ exports.deleteProduct = async (req, res) => {
       return res.status(404).send("Product not found");
     }
 
-    // Delete the associated image file if it exists
+    // Delete the associated image files if they exist
+    if (product.images && product.images.length > 0) {
+      deleteImageFiles(product.images);
+    }
+    
+    // Handle backward compatibility - delete old single image if it exists
     if (product.image) {
       deleteImageFile(product.image);
     }
