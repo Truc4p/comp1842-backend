@@ -39,8 +39,36 @@ exports.createOrder = async (req, res) => {
     const userId = req.user.id;
     console.log("User ID from request:", userId);
 
-    const user = req.user;
-    console.log("User:", user);
+    // Validate stock for each product line
+    // Expect each item: { productId, quantity, price }
+    for (const item of products) {
+      if (!item.productId || typeof item.quantity !== 'number' || item.quantity <= 0) {
+        return res.status(400).send({ error: 'Each product requires productId and positive quantity' });
+      }
+      const product = await Product.findById(item.productId);
+      if (!product) {
+        return res.status(400).send({ error: `Product not found: ${item.productId}` });
+      }
+      if (product.stockQuantity < item.quantity) {
+        return res.status(400).send({
+          error: `Insufficient stock for product ${product.name}. Available: ${product.stockQuantity}, requested: ${item.quantity}`,
+        });
+      }
+    }
+
+    // Decrement stock atomically per item
+    for (const item of products) {
+      const updated = await Product.findOneAndUpdate(
+        { _id: item.productId, stockQuantity: { $gte: item.quantity } },
+        { $inc: { stockQuantity: -item.quantity } },
+        { new: true }
+      );
+      if (!updated) {
+        return res.status(409).send({
+          error: 'Stock changed while processing your order. Please try again.',
+        });
+      }
+    }
 
     const order = new Order({
       user: userId,

@@ -38,7 +38,7 @@ const role = require("../middleware/role");
  *                 description: The quantity of the product
  *         paymentMethod:
  *           type: string
- *           enum: ["cash", "credit_card", "paypal"]
+ *           enum: ["cash", "credit_card", "zalopay"]
  *           description: The payment method
  *         status:
  *           type: string

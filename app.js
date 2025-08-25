@@ -11,6 +11,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const authRoutes = require("./routes/authRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const userRoutes = require("./routes/userRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 
 const connectDB = require("./db");
 const path = require("path"); // Import the path module
@@ -45,6 +46,7 @@ app.use("/categories", categoryRoutes);
 app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
 app.use("/users", userRoutes);
+app.use("/analytics", analyticsRoutes);
 
 // Define a route for the root URL
 app.get('/', (req, res) => {

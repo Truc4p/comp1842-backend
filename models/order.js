@@ -26,7 +26,7 @@ const OrderSchema = new Schema({
 
   paymentMethod: {
     type: String,
-    enum: ["cash", "credit_card", "paypal"],
+    enum: ["cash", "credit_card", "zalopay"],
     required: true,
   },
   
