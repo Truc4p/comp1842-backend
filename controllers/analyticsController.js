@@ -106,13 +106,6 @@ const getSalesAnalytics = async (req, res) => {
 // Get product analytics
 const getProductAnalytics = async (req, res) => {
   try {
-    // Debug: counts to help diagnose Unknown Category
-    const [orphanCount, categoryDocsCount] = await Promise.all([
-      Product.countDocuments({ $or: [ { category: { $exists: false } }, { category: null } ] }),
-      Category.countDocuments(),
-    ]);
-    console.log("[Analytics] getProductAnalytics: counts", { orphanCount, categoryDocsCount });
-
     // Get top selling products
     const topProducts = await Order.aggregate([
       { $unwind: "$products" },
@@ -126,7 +119,6 @@ const getProductAnalytics = async (req, res) => {
       { $sort: { totalSold: -1 } },
       { $limit: 10 }
     ]);
-    console.log("[Analytics] getProductAnalytics: topProducts count", topProducts.length);
 
     // Get product details for top products
     const topProductsWithDetails = await Promise.all(
@@ -141,28 +133,28 @@ const getProductAnalytics = async (req, res) => {
       })
     );
 
-    // Get category distribution with names via lookup
+    // Get category distribution
     const categoryDistribution = await Product.aggregate([
-      { $group: { _id: "$category", count: { $sum: 1 } } },
       {
-        $lookup: {
-          from: "categories",
-          localField: "_id",
-          foreignField: "_id",
-          as: "category"
-        }
-      },
-      { $unwind: { path: "$category", preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          categoryId: "$_id",
-          name: { $ifNull: ["$category.name", "Unknown Category"] },
-          count: 1
+        $group: {
+          _id: "$category",
+          count: { $sum: 1 }
         }
       },
       { $sort: { count: -1 } }
     ]);
-    console.log("[Analytics] getProductAnalytics: categoryDistribution sample", categoryDistribution.slice(0, 5));
+
+    // Get category names
+    const categoryDistributionWithNames = await Promise.all(
+      categoryDistribution.map(async (cat) => {
+        const category = await Category.findById(cat._id);
+        return {
+          categoryId: cat._id,
+          name: category ? category.name : "Unknown Category",
+          count: cat.count
+        };
+      })
+    );
 
     // Get low stock products
     const lowStockProducts = await Product.find({ stockQuantity: { $lt: 10 } })
@@ -172,7 +164,7 @@ const getProductAnalytics = async (req, res) => {
 
     res.json({
       topProducts: topProductsWithDetails,
-      categoryDistribution,
+      categoryDistribution: categoryDistributionWithNames,
       lowStockProducts
     });
   } catch (error) {
