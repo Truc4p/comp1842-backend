@@ -3,7 +3,6 @@ const User = require("../models/user");
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find();
-    console.log(users); // Log all users
     res.json(users);
   } catch (err) {
     console.error("Error fetching users:", err); // Log the error
