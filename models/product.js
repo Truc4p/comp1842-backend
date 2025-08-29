@@ -27,6 +27,42 @@ const productSchema = new mongoose.Schema({
     required: true,
     default: 0,
   },
+  // Additional fields for AI assistant
+  ingredients: [{
+    type: String,
+    lowercase: true,
+  }],
+  skinType: [{
+    type: String,
+    enum: ['oily', 'dry', 'combination', 'sensitive', 'normal', 'all'],
+    lowercase: true,
+  }],
+  benefits: [{
+    type: String,
+    lowercase: true,
+  }],
+  tags: [{
+    type: String,
+    lowercase: true,
+  }],
+  usage: {
+    type: String,
+  },
+  skinConcerns: [{
+    type: String,
+    enum: ['acne', 'aging', 'dark-spots', 'wrinkles', 'dryness', 'sensitivity', 'dullness', 'pores', 'uneven-tone'],
+    lowercase: true,
+  }],
+});
+
+// Create text index for better search
+productSchema.index({ 
+  name: 'text', 
+  description: 'text', 
+  ingredients: 'text', 
+  benefits: 'text', 
+  tags: 'text',
+  usage: 'text'
 });
 
 const Product = mongoose.model("Product", productSchema);
