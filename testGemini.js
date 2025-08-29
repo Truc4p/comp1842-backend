@@ -8,7 +8,7 @@ async function testGeminiAPI() {
     console.log('API Key:', process.env.GEMINI_API_KEY ? 'Set ✅' : 'Missing ❌');
     
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = "You are a skincare expert. Recommend 2 products for oily skin in 50 words.";
     

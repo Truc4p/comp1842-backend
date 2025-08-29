@@ -16,7 +16,7 @@ function generateUUID() {
 
 // Initialize Gemini API
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyATLXnFTVrt-ObeQn5_bAzxENnMLr2Lbtc");
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 // Flow 1: Get predefined FAQs (menu-driven)
 exports.getFAQs = async (req, res) => {
