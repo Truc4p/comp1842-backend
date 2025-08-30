@@ -16,15 +16,6 @@ const deleteImageFile = (imagePath) => {
   }
 };
 
-// Utility function to delete multiple image files
-const deleteImageFiles = (imagePaths) => {
-  if (imagePaths && Array.isArray(imagePaths)) {
-    imagePaths.forEach(imagePath => {
-      deleteImageFile(imagePath);
-    });
-  }
-};
-
 exports.getAllProducts = async (req, res) => {
   try {
     const products = await Product.find().populate("category");
@@ -49,11 +40,62 @@ exports.getProductById = async (req, res) => {
 
 exports.createProduct = async (req, res) => {
   try {
-    const { name, categoryId, price, description, stockQuantity } = req.body;
+    const { 
+      name, 
+      categoryId, 
+      price, 
+      description, 
+      stockQuantity,
+      ingredients,
+      skinType,
+      benefits,
+      tags,
+      usage,
+      skinConcerns
+    } = req.body;
     const image = req.file ? req.file.path : null;
 
-    const product = new Product({ name, category: categoryId, image, price, description, stockQuantity });
+    // Debug logging
+    console.log('Raw request body fields:');
+    console.log('ingredients:', ingredients);
+    console.log('skinType:', skinType);
+    console.log('benefits:', benefits);
+    console.log('tags:', tags);
+    console.log('usage:', usage);
+    console.log('skinConcerns:', skinConcerns);
+
+    // Parse JSON strings for array fields
+    const parsedIngredients = ingredients ? JSON.parse(ingredients) : [];
+    const parsedSkinType = skinType ? JSON.parse(skinType) : [];
+    const parsedBenefits = benefits ? JSON.parse(benefits) : [];
+    const parsedTags = tags ? JSON.parse(tags) : [];
+    const parsedSkinConcerns = skinConcerns ? JSON.parse(skinConcerns) : [];
+
+    console.log('Parsed fields:');
+    console.log('parsedIngredients:', parsedIngredients);
+    console.log('parsedSkinType:', parsedSkinType);
+    console.log('parsedBenefits:', parsedBenefits);
+    console.log('parsedTags:', parsedTags);
+    console.log('parsedSkinConcerns:', parsedSkinConcerns);
+
+    const product = new Product({ 
+      name, 
+      category: categoryId, 
+      image, 
+      price, 
+      description, 
+      stockQuantity,
+      ingredients: parsedIngredients,
+      skinType: parsedSkinType,
+      benefits: parsedBenefits,
+      tags: parsedTags,
+      usage,
+      skinConcerns: parsedSkinConcerns
+    });
+    
+    console.log('Product object before save:', product);
     await product.save();
+    console.log('Product saved successfully:', product._id);
     res.status(201).json(product);
   } catch (err) {
     console.error("Error creating product:", err);
@@ -67,7 +109,19 @@ exports.createProduct = async (req, res) => {
 
 exports.updateProduct = async (req, res) => {
   try {
-    const { name, categoryId, price, description, stockQuantity } = req.body;
+    const { 
+      name, 
+      categoryId, 
+      price, 
+      description, 
+      stockQuantity,
+      ingredients,
+      skinType,
+      benefits,
+      tags,
+      usage,
+      skinConcerns
+    } = req.body;
     const newImage = req.file ? req.file.path : null;
 
     // First, get the current product to access the old image path
@@ -80,7 +134,26 @@ exports.updateProduct = async (req, res) => {
       return res.status(404).send("Product not found");
     }
 
-    const updateData = { name, category: categoryId, price, description, stockQuantity };
+    // Parse JSON strings for array fields
+    const parsedIngredients = ingredients ? JSON.parse(ingredients) : [];
+    const parsedSkinType = skinType ? JSON.parse(skinType) : [];
+    const parsedBenefits = benefits ? JSON.parse(benefits) : [];
+    const parsedTags = tags ? JSON.parse(tags) : [];
+    const parsedSkinConcerns = skinConcerns ? JSON.parse(skinConcerns) : [];
+
+    const updateData = { 
+      name, 
+      category: categoryId, 
+      price, 
+      description, 
+      stockQuantity,
+      ingredients: parsedIngredients,
+      skinType: parsedSkinType,
+      benefits: parsedBenefits,
+      tags: parsedTags,
+      usage,
+      skinConcerns: parsedSkinConcerns
+    };
     
     // If new image is uploaded, handle the old image deletion
     if (newImage) {

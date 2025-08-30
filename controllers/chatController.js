@@ -228,7 +228,6 @@ async function retrieveRelevantInformation(query) {
   }
 }
 
-// Helper function: Generate AI response using OpenAI
 // Helper function: Generate AI response using Gemini
 async function generateAIResponse(userMessage, conversationHistory, retrievedInfo) {
   try {
