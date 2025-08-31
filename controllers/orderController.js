@@ -1,6 +1,8 @@
 const Order = require("../models/order");
 const Product = require("../models/product");
 const User = require("../models/user");
+const { generateTransactionFromOrder } = require("./cashFlowController");
+const { generateOrderTransactions } = require("../middleware/cashFlowAutomation");
 
 // Admin Operation: Get all Orders
 exports.getAllOrders = async (req, res) => {
@@ -148,6 +150,30 @@ exports.updateOrderStatus = async (req, res) => {
 
     if (order) {
       console.log("Order status updated successfully:", order);
+      
+      // 🚀 PHASE 4: Automated Cash Flow Transaction Generation
+      // Generate cash flow transactions when order is completed
+      if (status === 'completed') {
+        try {
+          console.log("🔄 Generating automated cash flow transactions for completed order...");
+          const transactions = await generateOrderTransactions(order);
+          console.log("✅ Cash flow transactions generated successfully:", {
+            orderId: order._id,
+            totalAmount: order.totalPrice,
+            transactions: {
+              revenue: transactions.revenue._id,
+              cogs: transactions.cogs._id,
+              shipping: transactions.shipping._id
+            },
+            netProfit: transactions.revenue.amount - transactions.cogs.amount - transactions.shipping.amount
+          });
+        } catch (error) {
+          console.error("❌ Error generating cash flow transactions:", error);
+          // Don't fail the order update if cash flow generation fails
+          // This ensures order completion isn't blocked by cash flow issues
+        }
+      }
+      
       res.json(order);
     } else {
       console.log("Order not found");

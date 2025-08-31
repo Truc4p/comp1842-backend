@@ -13,13 +13,19 @@ const orderRoutes = require("./routes/orderRoutes");
 const userRoutes = require("./routes/userRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const chatRoutes = require("./routes/chatRoutes");
+const cashFlowRoutes = require("./routes/cashFlowRoutes");
+const automationRoutes = require("./routes/automationRoutes");
 
 const connectDB = require("./db");
 const path = require("path"); // Import the path module
+const { initializeRecurringExpenses } = require("./middleware/cashFlowAutomation");
 
 const app = express();
 
 connectDB(); // Connect to MongoDB
+
+// 🚀 Initialize Phase 4: Automated Cash Flow System
+initializeRecurringExpenses();
 
 // Enable CORS for all origins
 app.use(cors());
@@ -49,6 +55,8 @@ app.use("/orders", orderRoutes);
 app.use("/users", userRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/chat", chatRoutes);
+app.use("/cashflow", cashFlowRoutes);
+app.use("/automation", automationRoutes);
 
 // Define a route for the root URL
 app.get('/', (req, res) => {
