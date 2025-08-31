@@ -84,7 +84,25 @@ const getCashFlowDashboard = async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
+    console.log(`📊 Dashboard request - Period: ${days} days, Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+
+    // Debug: Check total transaction count
+    const totalTransactions = await CashFlowTransaction.countDocuments({});
+    const manualTransactions = await CashFlowTransaction.countDocuments({ automated: false });
+    const recentTransactions = await CashFlowTransaction.find({}).sort({ date: -1 }).limit(3);
+    
+    console.log(`🔍 Transaction counts - Total: ${totalTransactions}, Manual: ${manualTransactions}, Automated: ${totalTransactions - manualTransactions}`);
+    console.log(`🔍 Most recent transactions:`, recentTransactions.map(tx => `${tx.type} $${tx.amount} (${tx.automated ? 'auto' : 'manual'})`));
+
     const dashboardData = await calculateDashboardData(startDate, endDate, days);
+    
+    console.log(`📈 Dashboard calculated:`, {
+      currentBalance: dashboardData.currentBalance,
+      netCashFlow: dashboardData.netCashFlow,
+      totalInflows: dashboardData.totalInflows,
+      totalOutflows: dashboardData.totalOutflows
+    });
+
     res.json(dashboardData);
   } catch (error) {
     console.error("Error getting cash flow dashboard:", error);
@@ -383,8 +401,25 @@ const getCashFlowForecast = async (req, res) => {
 
 const createCashFlowTransaction = async (req, res) => {
   try {
+    console.log("💰 Creating new transaction:", req.body);
+    
     const transaction = new CashFlowTransaction(req.body);
     await transaction.save();
+    
+    console.log("✅ Transaction saved successfully:", {
+      id: transaction._id,
+      type: transaction.type,
+      amount: transaction.amount,
+      category: transaction.category,
+      automated: transaction.automated,
+      date: transaction.date
+    });
+    
+    // Check total count after save
+    const totalCount = await CashFlowTransaction.countDocuments({});
+    const manualCount = await CashFlowTransaction.countDocuments({ automated: false });
+    console.log(`📊 Updated counts - Total: ${totalCount}, Manual: ${manualCount}`);
+    
     res.status(201).json(transaction);
   } catch (error) {
     console.error("Error creating cash flow transaction:", error);

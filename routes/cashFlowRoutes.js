@@ -310,4 +310,38 @@ router.post("/sync", auth, role("admin"), async (req, res) => {
  */
 router.post("/sync-orders", auth, role("admin"), cashFlowController.syncOrdersToTransactions);
 
+// DEBUG: Get recent transactions for debugging
+router.get("/debug/recent", auth, role("admin"), async (req, res) => {
+  try {
+    const CashFlowTransaction = require("../models/cashFlowTransaction");
+    
+    const recentTransactions = await CashFlowTransaction.find({})
+      .sort({ date: -1 })
+      .limit(10)
+      .select('type amount category description automated date');
+    
+    const totalCount = await CashFlowTransaction.countDocuments({});
+    const manualCount = await CashFlowTransaction.countDocuments({ automated: false });
+    
+    res.json({
+      totalTransactions: totalCount,
+      manualTransactions: manualCount,
+      automatedTransactions: totalCount - manualCount,
+      recentTransactions: recentTransactions.map(tx => ({
+        id: tx._id,
+        type: tx.type,
+        amount: tx.amount,
+        category: tx.category,
+        description: tx.description,
+        automated: tx.automated,
+        date: tx.date.toISOString(),
+        dateFormatted: tx.date.toLocaleString()
+      }))
+    });
+  } catch (error) {
+    console.error("Debug endpoint error:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
