@@ -53,6 +53,9 @@ const calculateDashboardData = async (startDate, endDate, period) => {
 
     const currentBalance = (allTimeInflowsResult[0]?.total || 0) - (allTimeOutflowsResult[0]?.total || 0);
 
+    // Calculate starting balance (balance at the beginning of the period)
+    const startingBalance = currentBalance - netCashFlow;
+
     // Calculate cash burn rate (daily average outflows)
     const cashBurnRate = totalOutflows / period;
 
@@ -64,6 +67,7 @@ const calculateDashboardData = async (startDate, endDate, period) => {
       totalOutflows,
       netCashFlow,
       currentBalance,
+      startingBalance,
       cashBurnRate,
       runway,
       period
@@ -99,6 +103,7 @@ const getCashFlowDashboard = async (req, res) => {
     console.log(`📈 Dashboard calculated:`, {
       currentBalance: dashboardData.currentBalance,
       netCashFlow: dashboardData.netCashFlow,
+      startingBalance: dashboardData.startingBalance,
       totalInflows: dashboardData.totalInflows,
       totalOutflows: dashboardData.totalOutflows
     });

@@ -22,28 +22,6 @@ const productSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  // COGS (Cost of Goods Sold) fields for financial tracking
-  cost: {
-    type: Number,
-    required: false,
-    default: 0,
-    min: 0,
-    comment: "Actual cost to produce/acquire this product"
-  },
-  cogs: {
-    type: Number,
-    required: false,
-    default: 0,
-    min: 0,
-    comment: "Cost of goods sold per unit (may include additional costs)"
-  },
-  margin: {
-    type: Number,
-    required: false,
-    min: 0,
-    max: 100,
-    comment: "Profit margin percentage (calculated or manual)"
-  },
   stockQuantity: {
     type: Number,
     required: true,
