@@ -310,6 +310,64 @@ router.post("/sync", auth, role("admin"), async (req, res) => {
  */
 router.post("/sync-orders", auth, role("admin"), cashFlowController.syncOrdersToTransactions);
 
+// 🧹 REMOVE ARTIFICIAL TRANSACTIONS
+router.delete("/artificial-transactions", auth, role("admin"), async (req, res) => {
+  try {
+    const CashFlowTransaction = require("../models/cashFlowTransaction");
+    
+    console.log("🧹 API: Removing artificial COGS and shipping transactions...");
+    
+    // Find artificial transactions
+    const artificialTransactions = await CashFlowTransaction.find({
+      $or: [
+        { category: 'cost_of_goods_sold', automated: true },
+        { category: 'shipping_costs', automated: true }
+      ]
+    });
+    
+    console.log(`🔍 Found ${artificialTransactions.length} artificial transactions`);
+    
+    // Remove them
+    const deleteResult = await CashFlowTransaction.deleteMany({
+      $or: [
+        { category: 'cost_of_goods_sold', automated: true },
+        { category: 'shipping_costs', automated: true }
+      ]
+    });
+    
+    // Get updated totals
+    const remaining = await CashFlowTransaction.find({});
+    const remainingInflows = remaining.filter(t => t.type === 'inflow').reduce((sum, t) => sum + t.amount, 0);
+    const remainingOutflows = remaining.filter(t => t.type === 'outflow').reduce((sum, t) => sum + t.amount, 0);
+    
+    console.log(`✅ API: Removed ${deleteResult.deletedCount} artificial transactions`);
+    
+    res.json({
+      success: true,
+      message: "Artificial transactions removed successfully",
+      removed: deleteResult.deletedCount,
+      artificialTransactions: artificialTransactions.map(t => ({
+        category: t.category,
+        amount: t.amount,
+        description: t.description,
+        date: t.date
+      })),
+      newTotals: {
+        inflows: remainingInflows,
+        outflows: remainingOutflows,
+        net: remainingInflows - remainingOutflows
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ API: Failed to remove artificial transactions:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // DEBUG: Get recent transactions for debugging
 router.get("/debug/recent", auth, role("admin"), async (req, res) => {
   try {
