@@ -86,7 +86,9 @@ const getCashFlowDashboard = async (req, res) => {
     
     const endDate = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    // Include today as the last day and ensure exactly `days` entries
+    // Example: days=7 -> startDate is 6 days before today
+    startDate.setDate(startDate.getDate() - (days - 1));
 
     console.log(`📊 Dashboard request - Period: ${days} days, Date range: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
 
@@ -264,7 +266,7 @@ const getCashFlowHistory = async (req, res) => {
     const history = [];
     const currentDate = new Date(startDate);
     
-    while (currentDate < endDate) {
+    while (currentDate <= endDate) {
       const dateStr = currentDate.toISOString().split('T')[0];
       const dayData = dailyData.find(d => d._id === dateStr);
       
@@ -777,8 +779,9 @@ const getBalanceBreakdown = async (req, res) => {
       },
       inflowsByCategory,
       outflowsByCategory,
-      recentInflows: inflowTransactions.slice(0, 10),
-      recentOutflows: outflowTransactions.slice(0, 10)
+      // Return full lists for UI to show all transactions
+      allInflows: inflowTransactions,
+      allOutflows: outflowTransactions
     });
   } catch (error) {
     console.error("Error getting balance breakdown:", error);
