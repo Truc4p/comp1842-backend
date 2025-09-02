@@ -21,25 +21,13 @@ const generateOrderTransactions = async (order) => {
       type: 'inflow',
       category: 'product_sales',
       amount: order.totalPrice,
-      description: `Revenue from order ${order._id} - ${order.products.length} items`,
+      description: `Order #${order._id.toString().slice(-6)}`,
       orderId: order._id,
       date: new Date(),
       automated: true
     });
     await revenueTransaction.save();
 
-    // 2. Create OUTFLOW transaction: Cost of Goods Sold (40% of sales for cosmetics)
-    const cogsAmount = order.totalPrice * 0.40;
-    const cogsTransaction = new CashFlowTransaction({
-      type: 'outflow',
-      category: 'cost_of_goods_sold',
-      amount: cogsAmount,
-      description: `COGS for order ${order._id} (40% of ${order.totalPrice})`,
-      orderId: order._id,
-      date: new Date(),
-      automated: true
-    });
-    await cogsTransaction.save();
 
     // 3. Create OUTFLOW transaction: Shipping Costs
     const shippingCost = calculateShippingCost(order);
@@ -47,23 +35,20 @@ const generateOrderTransactions = async (order) => {
       type: 'outflow',
       category: 'shipping_costs',
       amount: shippingCost,
-      description: `Shipping cost for order ${order._id}`,
+      description: `Order #${order._id.toString().slice(-6)}`,
       orderId: order._id,
       date: new Date(),
       automated: true
     });
     await shippingTransaction.save();
 
-    console.log(`✅ Generated 3 automated transactions for order ${order._id}:`, {
+    console.log(`✅ Generated 2 automated transactions for order ${order._id}:`, {
       revenue: revenueTransaction.amount,
-      cogs: cogsTransaction.amount,
       shipping: shippingTransaction.amount,
-      netProfit: revenueTransaction.amount - cogsTransaction.amount - shippingTransaction.amount
     });
 
     return {
       revenue: revenueTransaction,
-      cogs: cogsTransaction,
       shipping: shippingTransaction
     };
   } catch (error) {

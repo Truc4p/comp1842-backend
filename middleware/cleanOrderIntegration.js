@@ -22,7 +22,7 @@ const generateRevenueTransaction = async (order) => {
       type: 'inflow',
       category: 'product_sales',
       amount: order.totalPrice,
-      description: `Order #${order._id.toString().slice(-6)} - ${order.products.length} items`,
+      description: `Order #${order._id.toString().slice(-6)}`,
       orderId: order._id,
       date: order.orderDate || new Date(), // Use actual order date
       automated: true // Mark as automated but clean

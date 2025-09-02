@@ -481,7 +481,7 @@ const generateTransactionFromOrder = async (order) => {
       type: 'inflow',
       category: 'product_sales',
       amount: order.totalPrice,
-      description: `Revenue from order ${order._id}`,
+      description: `Order #${order._id.toString().slice(-6)}`,
       date: order.orderDate,
       orderId: order._id,
       automated: true
@@ -489,26 +489,12 @@ const generateTransactionFromOrder = async (order) => {
 
     await revenueTransaction.save();
 
-    // Create COGS transaction (assume 40% of sale price as cost)
-    const cogsAmount = order.totalPrice * 0.4;
-    const cogsTransaction = new CashFlowTransaction({
-      type: 'outflow',
-      category: 'cost_of_goods_sold',
-      amount: cogsAmount,
-      description: `Cost of goods for order ${order._id}`,
-      date: order.orderDate,
-      orderId: order._id,
-      automated: true
-    });
-
-    await cogsTransaction.save();
-
     // Create shipping cost transaction (estimate $10 per order)
     const shippingTransaction = new CashFlowTransaction({
       type: 'outflow',
       category: 'shipping_costs',
       amount: 10,
-      description: `Shipping cost for order ${order._id}`,
+      description: `Order #${order._id.toString().slice(-6)}`,
       date: order.orderDate,
       orderId: order._id,
       automated: true
@@ -518,7 +504,6 @@ const generateTransactionFromOrder = async (order) => {
 
     return {
       revenue: revenueTransaction,
-      cogs: cogsTransaction,
       shipping: shippingTransaction
     };
   } catch (error) {
@@ -732,13 +717,29 @@ const compareOrdersVsTransactions = async (req, res) => {
 // Get detailed balance breakdown
 const getBalanceBreakdown = async (req, res) => {
   try {
-    // Get all inflow transactions
-    const inflowTransactions = await CashFlowTransaction.find({ type: 'inflow' })
+    const { period = "30" } = req.query;
+    const days = parseInt(period);
+    
+    // Calculate date range based on period
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    console.log(`🔍 Balance breakdown for ${days} days: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+
+    // Get inflow transactions for the specified period
+    const inflowTransactions = await CashFlowTransaction.find({ 
+      type: 'inflow',
+      date: { $gte: startDate, $lte: endDate }
+    })
       .sort({ date: -1 })
       .select('amount category description date automated');
 
-    // Get all outflow transactions  
-    const outflowTransactions = await CashFlowTransaction.find({ type: 'outflow' })
+    // Get outflow transactions for the specified period
+    const outflowTransactions = await CashFlowTransaction.find({ 
+      type: 'outflow',
+      date: { $gte: startDate, $lte: endDate }
+    })
       .sort({ date: -1 })
       .select('amount category description date automated');
 
