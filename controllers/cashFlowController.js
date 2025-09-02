@@ -100,12 +100,32 @@ const getCashFlowDashboard = async (req, res) => {
 
     const dashboardData = await calculateDashboardData(startDate, endDate, days);
     
+    // Add detailed balance breakdown for debugging
+    const allTimeInflows = await CashFlowTransaction.aggregate([
+      { $match: { type: 'inflow' } },
+      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+    ]);
+    
+    const allTimeOutflows = await CashFlowTransaction.aggregate([
+      { $match: { type: 'outflow' } },
+      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } }
+    ]);
+
+    dashboardData.balanceBreakdown = {
+      totalInflows: allTimeInflows[0]?.total || 0,
+      totalOutflows: allTimeOutflows[0]?.total || 0,
+      inflowCount: allTimeInflows[0]?.count || 0,
+      outflowCount: allTimeOutflows[0]?.count || 0,
+      currentBalance: (allTimeInflows[0]?.total || 0) - (allTimeOutflows[0]?.total || 0)
+    };
+    
     console.log(`📈 Dashboard calculated:`, {
       currentBalance: dashboardData.currentBalance,
       netCashFlow: dashboardData.netCashFlow,
       startingBalance: dashboardData.startingBalance,
       totalInflows: dashboardData.totalInflows,
-      totalOutflows: dashboardData.totalOutflows
+      totalOutflows: dashboardData.totalOutflows,
+      balanceBreakdown: dashboardData.balanceBreakdown
     });
 
     res.json(dashboardData);
@@ -244,7 +264,7 @@ const getCashFlowHistory = async (req, res) => {
     const history = [];
     const currentDate = new Date(startDate);
     
-    while (currentDate <= endDate) {
+    while (currentDate < endDate) {
       const dateStr = currentDate.toISOString().split('T')[0];
       const dayData = dailyData.find(d => d._id === dateStr);
       
@@ -580,6 +600,192 @@ const mapRefunds = async (startDate, endDate) => {
   return 0;
 };
 
+// Debug: Compare orders vs transactions
+const compareOrdersVsTransactions = async (req, res) => {
+  try {
+    const Order = require("../models/order");
+    
+    // Get all completed orders
+    const completedOrders = await Order.find({ status: 'completed' })
+      .sort({ orderDate: -1 })
+      .select('_id totalPrice orderDate user products status')
+      .populate('user', 'username');
+
+    // Get all product sales transactions
+    const productSalesTransactions = await CashFlowTransaction.find({ 
+      category: 'product_sales',
+      type: 'inflow'
+    })
+    .sort({ date: -1 })
+    .select('amount date description orderId automated');
+
+    // Get transactions linked to orders
+    const transactionsWithOrders = await CashFlowTransaction.find({
+      category: 'product_sales',
+      type: 'inflow',
+      orderId: { $exists: true }
+    });
+
+    // Get transactions without order links
+    const transactionsWithoutOrders = await CashFlowTransaction.find({
+      category: 'product_sales', 
+      type: 'inflow',
+      $or: [
+        { orderId: { $exists: false } },
+        { orderId: null }
+      ]
+    });
+
+    // Check which orders have corresponding transactions
+    const ordersWithTransactions = [];
+    const ordersWithoutTransactions = [];
+    const multipleTransactionsPerOrder = [];
+
+    for (const order of completedOrders) {
+      const orderTransactions = productSalesTransactions.filter(tx => 
+        tx.orderId && tx.orderId.toString() === order._id.toString()
+      );
+      
+      if (orderTransactions.length === 0) {
+        ordersWithoutTransactions.push(order);
+      } else if (orderTransactions.length === 1) {
+        ordersWithTransactions.push({
+          order,
+          transaction: orderTransactions[0]
+        });
+      } else {
+        multipleTransactionsPerOrder.push({
+          order,
+          transactions: orderTransactions
+        });
+      }
+    }
+
+    const totalOrderRevenue = completedOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+    const totalTransactionRevenue = productSalesTransactions.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+    res.json({
+      summary: {
+        completedOrders: completedOrders.length,
+        productSalesTransactions: productSalesTransactions.length,
+        totalOrderRevenue,
+        totalTransactionRevenue,
+        revenueDifference: totalTransactionRevenue - totalOrderRevenue
+      },
+      analysis: {
+        ordersWithTransactions: ordersWithTransactions.length,
+        ordersWithoutTransactions: ordersWithoutTransactions.length,
+        multipleTransactionsPerOrder: multipleTransactionsPerOrder.length,
+        transactionsWithoutOrders: transactionsWithoutOrders.length
+      },
+      details: {
+        completedOrders: completedOrders.map(order => ({
+          id: order._id,
+          customer: order.user?.username || 'Unknown',
+          amount: order.totalPrice,
+          date: order.orderDate,
+          products: order.products?.length || 0
+        })),
+        productSalesTransactions: productSalesTransactions.map(tx => ({
+          id: tx._id,
+          amount: tx.amount,
+          date: tx.date,
+          orderId: tx.orderId,
+          automated: tx.automated,
+          description: tx.description
+        })),
+        ordersWithoutTransactions: ordersWithoutTransactions.map(order => ({
+          id: order._id,
+          customer: order.user?.username || 'Unknown',
+          amount: order.totalPrice,
+          date: order.orderDate
+        })),
+        transactionsWithoutOrders: transactionsWithoutOrders.map(tx => ({
+          id: tx._id,
+          amount: tx.amount,
+          date: tx.date,
+          description: tx.description,
+          automated: tx.automated
+        })),
+        multipleTransactionsPerOrder: multipleTransactionsPerOrder.map(item => ({
+          order: {
+            id: item.order._id,
+            amount: item.order.totalPrice,
+            customer: item.order.user?.username || 'Unknown'
+          },
+          transactions: item.transactions.map(tx => ({
+            id: tx._id,
+            amount: tx.amount,
+            date: tx.date
+          }))
+        }))
+      }
+    });
+  } catch (error) {
+    console.error("Error comparing orders vs transactions:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Get detailed balance breakdown
+const getBalanceBreakdown = async (req, res) => {
+  try {
+    // Get all inflow transactions
+    const inflowTransactions = await CashFlowTransaction.find({ type: 'inflow' })
+      .sort({ date: -1 })
+      .select('amount category description date automated');
+
+    // Get all outflow transactions  
+    const outflowTransactions = await CashFlowTransaction.find({ type: 'outflow' })
+      .sort({ date: -1 })
+      .select('amount category description date automated');
+
+    // Calculate totals
+    const totalInflows = inflowTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const totalOutflows = outflowTransactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const currentBalance = totalInflows - totalOutflows;
+
+    // Group by category
+    const inflowsByCategory = {};
+    const outflowsByCategory = {};
+
+    inflowTransactions.forEach(tx => {
+      if (!inflowsByCategory[tx.category]) {
+        inflowsByCategory[tx.category] = { total: 0, count: 0, transactions: [] };
+      }
+      inflowsByCategory[tx.category].total += tx.amount;
+      inflowsByCategory[tx.category].count += 1;
+      inflowsByCategory[tx.category].transactions.push(tx);
+    });
+
+    outflowTransactions.forEach(tx => {
+      if (!outflowsByCategory[tx.category]) {
+        outflowsByCategory[tx.category] = { total: 0, count: 0, transactions: [] };
+      }
+      outflowsByCategory[tx.category].total += tx.amount;
+      outflowsByCategory[tx.category].count += 1;
+      outflowsByCategory[tx.category].transactions.push(tx);
+    });
+
+    res.json({
+      summary: {
+        totalInflows,
+        totalOutflows,
+        currentBalance,
+        inflowCount: inflowTransactions.length,
+        outflowCount: outflowTransactions.length
+      },
+      inflowsByCategory,
+      outflowsByCategory,
+      recentInflows: inflowTransactions.slice(0, 10),
+      recentOutflows: outflowTransactions.slice(0, 10)
+    });
+  } catch (error) {
+    console.error("Error getting balance breakdown:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 module.exports = {
   getCashFlowDashboard,
   getCashFlowDashboardWithSync,
@@ -592,6 +798,8 @@ module.exports = {
   generateTransactionFromOrder,
   syncOrdersToTransactions,
   syncAllDataToFlowTransactions,
+  getBalanceBreakdown,
+  compareOrdersVsTransactions,
   mapProductSalesRevenue,
   mapCostOfGoodsSold,
   mapShippingCosts,

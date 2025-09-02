@@ -368,6 +368,12 @@ router.delete("/artificial-transactions", auth, role("admin"), async (req, res) 
   }
 });
 
+// DEBUG: Get detailed balance breakdown
+router.get("/debug/balance", auth, role("admin"), cashFlowController.getBalanceBreakdown);
+
+// DEBUG: Compare completed orders vs product sales transactions
+router.get("/debug/orders-vs-transactions", auth, role("admin"), cashFlowController.compareOrdersVsTransactions);
+
 // DEBUG: Get recent transactions for debugging
 router.get("/debug/recent", auth, role("admin"), async (req, res) => {
   try {
