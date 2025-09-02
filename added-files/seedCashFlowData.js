@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
-const CashFlowTransaction = require("./models/cashFlowTransaction");
-const BusinessExpense = require("./models/businessExpense");
+const CashFlowTransaction = require("../models/cashFlowTransaction");
+const BusinessExpense = require("../models/businessExpense");
 require('dotenv').config();
 
 // Connect to MongoDB

@@ -2,7 +2,7 @@
 console.log("🚀 Testing Phase 2 Data Mapping (Controller Validation)...");
 
 try {
-  const cashFlowController = require('./controllers/cashFlowController');
+  const cashFlowController = require('../controllers/cashFlowController');
   
   console.log("✅ Controller loaded successfully!");
   console.log("📋 Available functions:", Object.keys(cashFlowController));

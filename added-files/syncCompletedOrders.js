@@ -1,6 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const { syncCompletedOrdersTocashFlow } = require('./middleware/cleanOrderIntegration');
+const { syncCompletedOrdersTocashFlow } = require('../middleware/cleanOrderIntegration');
 
 /**
  * 🚀 SYNC COMPLETED ORDERS TO CASH FLOW
@@ -20,8 +20,8 @@ async function syncOrders() {
     console.log('MongoDB connected\n');
     
     // Get current state
-    const CashFlowTransaction = require('./models/cashFlowTransaction');
-    const Order = require('./models/order');
+    const CashFlowTransaction = require('../models/cashFlowTransaction');
+    const Order = require('../models/order');
     
     const beforeTransactions = await CashFlowTransaction.find({});
     const beforeTotal = beforeTransactions.reduce((sum, t) => 

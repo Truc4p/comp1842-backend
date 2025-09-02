@@ -1,6 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Product = require('./models/product');
+const Product = require('../models/product');
 
 async function removeProductCOGS() {
   try {

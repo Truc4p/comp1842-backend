@@ -1,11 +1,11 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const FAQ = require('./models/faq');
-const Product = require('./models/product');
-const Category = require('./models/category');
+const FAQ = require('../models/faq');
+const Product = require('../models/product');
+const Category = require('../models/category');
 
 // Connect to MongoDB
-const connectDB = require('./db');
+const connectDB = require('../db');
 
 async function seedDatabase() {
   try {

@@ -1,6 +1,6 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const CashFlowTransaction = require('./models/cashFlowTransaction');
+const CashFlowTransaction = require('../models/cashFlowTransaction');
 
 async function cleanupArtificialTransactions() {
   try {

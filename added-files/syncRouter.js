@@ -7,7 +7,7 @@
 
 const express = require('express');
 const mongoose = require('mongoose');
-const { syncCompletedOrdersTocashFlow } = require('./middleware/cleanOrderIntegration');
+const { syncCompletedOrdersTocashFlow } = require('../middleware/cleanOrderIntegration');
 
 // Create temporary router for sync
 const router = express.Router();

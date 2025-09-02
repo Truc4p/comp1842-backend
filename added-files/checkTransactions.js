@@ -8,7 +8,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 });
 
 // Import the model
-const CashFlowTransaction = require('./models/cashFlowTransaction');
+const CashFlowTransaction = require('../models/cashFlowTransaction');
 
 async function checkTransactions() {
   try {

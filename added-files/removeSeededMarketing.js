@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const CashFlowTransaction = require("./models/cashFlowTransaction");
+const CashFlowTransaction = require("../models/cashFlowTransaction");
 require('dotenv').config();
 
 mongoose.connect("mongodb+srv://mongo-api:7TZYsdhwiXhiKRp9@cluster0.18pi3.mongodb.net/Wrencos?retryWrites=true&w=majority")
