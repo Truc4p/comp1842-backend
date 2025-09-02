@@ -14,6 +14,7 @@ const userRoutes = require("./routes/userRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const cashFlowRoutes = require("./routes/cashFlowRoutes");
+const advancedFinanceRoutes = require("./routes/advancedFinanceRoutes");
 const automationRoutes = require("./routes/automationRoutes");
 
 const connectDB = require("./db");
@@ -56,6 +57,7 @@ app.use("/users", userRoutes);
 app.use("/analytics", analyticsRoutes);
 app.use("/chat", chatRoutes);
 app.use("/cashflow", cashFlowRoutes);
+app.use("/advanced-finance", advancedFinanceRoutes);
 app.use("/automation", automationRoutes);
 
 // Define a route for the root URL
