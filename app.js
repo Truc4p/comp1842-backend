@@ -16,6 +16,7 @@ const chatRoutes = require("./routes/chatRoutes");
 const cashFlowRoutes = require("./routes/cashFlowRoutes");
 const advancedFinanceRoutes = require("./routes/advancedFinanceRoutes");
 const automationRoutes = require("./routes/automationRoutes");
+const hrRoutes = require("./routes/hrRoutes");
 
 const connectDB = require("./db");
 const path = require("path"); // Import the path module
@@ -59,6 +60,7 @@ app.use("/chat", chatRoutes);
 app.use("/cashflow", cashFlowRoutes);
 app.use("/advanced-finance", advancedFinanceRoutes);
 app.use("/automation", automationRoutes);
+app.use("/hr", hrRoutes);
 
 // Define a route for the root URL
 app.get('/', (req, res) => {
