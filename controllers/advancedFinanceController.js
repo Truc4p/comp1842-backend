@@ -112,6 +112,51 @@ const getBusinessExpenses = async (req, res) => {
   }
 };
 
+// Helper function to map business expense categories to cash flow transaction categories
+const mapExpenseCategoryToCashFlow = (businessExpenseCategory) => {
+  const categoryMapping = {
+    'rent': 'rent',
+    'utilities': 'utilities', 
+    'payroll': 'payroll',
+    'marketing': 'marketing',
+    'shipping': 'shipping_costs',
+    'equipment': 'operating_expenses',
+    'software': 'operating_expenses',
+    'other': 'operating_expenses'
+  };
+  
+  return categoryMapping[businessExpenseCategory] || 'operating_expenses';
+};
+
+// Helper function to calculate next occurrence date
+const calculateNextOccurrence = (date, frequency) => {
+  if (!frequency) return null;
+  
+  const nextDate = new Date(date);
+  
+  switch (frequency) {
+    case 'daily':
+      nextDate.setDate(nextDate.getDate() + 1);
+      break;
+    case 'weekly':
+      nextDate.setDate(nextDate.getDate() + 7);
+      break;
+    case 'monthly':
+      nextDate.setMonth(nextDate.getMonth() + 1);
+      break;
+    case 'quarterly':
+      nextDate.setMonth(nextDate.getMonth() + 3);
+      break;
+    case 'yearly':
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+      break;
+    default:
+      return null;
+  }
+  
+  return nextDate;
+};
+
 // Create business expense
 const createBusinessExpense = async (req, res) => {
   try {
@@ -120,13 +165,18 @@ const createBusinessExpense = async (req, res) => {
       createdBy: req.user.id
     };
 
+    // Handle recurring expense nextOccurrence calculation
+    if (expenseData.isRecurring && expenseData.frequency && !expenseData.nextOccurrence) {
+      expenseData.nextOccurrence = calculateNextOccurrence(expenseData.date || new Date(), expenseData.frequency);
+    }
+
     const expense = new BusinessExpense(expenseData);
     await expense.save();
 
-    // Also create a corresponding cash flow transaction
+    // Also create a corresponding cash flow transaction with proper category mapping
     const cashFlowTransaction = new CashFlowTransaction({
       type: 'outflow',
-      category: expense.category === 'other' ? 'other_expenses' : expense.category,
+      category: mapExpenseCategoryToCashFlow(expense.category),
       amount: expense.amount,
       description: `Business Expense: ${expense.description}`,
       date: expense.date,
@@ -143,6 +193,21 @@ const createBusinessExpense = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating business expense:", error);
+    
+    // Handle validation errors with more specific messages
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      }));
+      
+      return res.status(400).json({ 
+        message: "Validation failed",
+        errors: validationErrors,
+        error: error.message 
+      });
+    }
+    
     res.status(400).json({ message: error.message });
   }
 };
@@ -151,9 +216,17 @@ const createBusinessExpense = async (req, res) => {
 const updateBusinessExpense = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    const updateData = { ...req.body };
+    
+    // Handle recurring expense nextOccurrence calculation for updates
+    if (updateData.isRecurring && updateData.frequency && !updateData.nextOccurrence) {
+      updateData.nextOccurrence = calculateNextOccurrence(updateData.date || new Date(), updateData.frequency);
+    }
+    
     const expense = await BusinessExpense.findByIdAndUpdate(
       id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     ).populate('createdBy', 'username');
     
@@ -167,7 +240,7 @@ const updateBusinessExpense = async (req, res) => {
       {
         amount: expense.amount,
         description: `Business Expense: ${expense.description}`,
-        category: expense.category === 'other' ? 'other_expenses' : expense.category,
+        category: mapExpenseCategoryToCashFlow(expense.category),
         date: expense.date
       }
     );
@@ -175,6 +248,21 @@ const updateBusinessExpense = async (req, res) => {
     res.json(expense);
   } catch (error) {
     console.error("Error updating business expense:", error);
+    
+    // Handle validation errors with more specific messages
+    if (error.name === 'ValidationError') {
+      const validationErrors = Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      }));
+      
+      return res.status(400).json({ 
+        message: "Validation failed",
+        errors: validationErrors,
+        error: error.message 
+      });
+    }
+    
     res.status(400).json({ message: error.message });
   }
 };
@@ -433,38 +521,77 @@ const getProfitabilityMetrics = async (startDate, endDate) => {
 
 const getFinancialHealthIndicators = async () => {
   // Current ratio approximation (Current Assets / Current Liabilities)
-  const allTimeInflowsResult = await CashFlowTransaction.aggregate([
-    { $match: { type: 'inflow' } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
+  // For a better approximation, we'll use cash balance + pending receivables as assets
+  // and pending expenses + recent outflows as liabilities
+  
+  // Calculate current cash position (total inflows - total outflows)
+  const cashPosition = await CashFlowTransaction.aggregate([
+    {
+      $group: {
+        _id: '$type',
+        total: { $sum: '$amount' }
+      }
+    }
   ]);
-
-  const allTimeOutflowsResult = await CashFlowTransaction.aggregate([
-    { $match: { type: 'outflow' } },
-    { $group: { _id: null, total: { $sum: '$amount' } } }
-  ]);
-
-  const currentAssets = allTimeInflowsResult[0]?.total || 0;
-  const currentLiabilities = allTimeOutflowsResult[0]?.total || 0;
-  const currentRatio = currentLiabilities > 0 ? currentAssets / currentLiabilities : 0;
-
-  // Debt-to-equity ratio approximation
-  const pendingExpenses = await BusinessExpense.aggregate([
+  
+  const totalInflows = cashPosition.find(item => item._id === 'inflow')?.total || 0;
+  const totalOutflows = cashPosition.find(item => item._id === 'outflow')?.total || 0;
+  const currentCashBalance = totalInflows - totalOutflows;
+  
+  // Current Assets = Cash Balance (assuming positive) + any receivables
+  const currentAssets = Math.max(currentCashBalance, 0);
+  
+  // Current Liabilities = Pending expenses (immediate obligations)
+  const pendingExpensesForLiabilities = await BusinessExpense.aggregate([
     { $match: { status: 'pending' } },
     { $group: { _id: null, total: { $sum: '$amount' } } }
   ]);
+  
+  const currentLiabilities = pendingExpensesForLiabilities[0]?.total || 0;
+  const currentRatio = currentLiabilities > 0 ? currentAssets / currentLiabilities : 
+    (currentAssets > 0 ? 999 : 1); // Very high ratio if assets exist but no liabilities
 
-  const totalDebt = pendingExpenses[0]?.total || 0;
+  // Debt-to-equity ratio approximation
+  const pendingExpensesResult = await BusinessExpense.aggregate([
+    { $match: { status: 'pending' } },
+    { 
+      $group: { 
+        _id: null, 
+        total: { $sum: '$amount' },
+        count: { $sum: 1 }
+      } 
+    }
+  ]);
+
+  const totalDebt = pendingExpensesResult[0]?.total || 0;
+  const pendingExpenseCount = pendingExpensesResult[0]?.count || 0;
   const equity = currentAssets - currentLiabilities;
   const debtToEquityRatio = equity > 0 ? totalDebt / equity : 0;
 
   // Working capital
   const workingCapital = currentAssets - currentLiabilities;
 
+  // Debug logging
+  console.log('💪 Financial Health Debug:', {
+    totalInflows: totalInflows,
+    totalOutflows: totalOutflows,
+    currentCashBalance: currentCashBalance,
+    currentAssets: currentAssets,
+    currentLiabilities: currentLiabilities,
+    currentRatio: currentRatio,
+    workingCapital: workingCapital,
+    pendingExpenseCount: pendingExpenseCount,
+    totalPendingExpenses: totalDebt
+  });
+
   return {
     currentRatio,
+    currentAssets,
+    currentLiabilities,
     debtToEquityRatio,
     workingCapital,
-    totalPendingExpenses: totalDebt
+    totalPendingExpenses: totalDebt,
+    pendingExpenseCount
   };
 };
 
@@ -594,18 +721,25 @@ const getFinancialPerformance = async (req, res) => {
     prevStartDate.setDate(prevStartDate.getDate() - days);
     const previousMetrics = await getProfitabilityMetrics(prevStartDate, prevEndDate);
 
-    // Calculate growth rates
+    // Calculate growth rates with proper handling of zero previous values
     const revenueGrowth = previousMetrics.revenue > 0 
       ? ((currentMetrics.revenue - previousMetrics.revenue) / previousMetrics.revenue) * 100 
-      : 0;
+      : currentMetrics.revenue > 0 ? 100 : 0; // 100% growth from 0 to any positive amount
 
     const expenseGrowth = previousMetrics.totalExpenses > 0 
       ? ((currentMetrics.totalExpenses - previousMetrics.totalExpenses) / previousMetrics.totalExpenses) * 100 
-      : 0;
+      : currentMetrics.totalExpenses > 0 ? 100 : 0; // 100% growth from 0 to any positive amount
+    
+    // Debug logging
+    console.log('📊 Performance Debug:', {
+      previousExpenses: previousMetrics.totalExpenses,
+      currentExpenses: currentMetrics.totalExpenses,
+      calculatedExpenseGrowth: expenseGrowth
+    });
 
     const profitGrowth = previousMetrics.grossProfit !== 0 
       ? ((currentMetrics.grossProfit - previousMetrics.grossProfit) / Math.abs(previousMetrics.grossProfit)) * 100 
-      : 0;
+      : currentMetrics.grossProfit > 0 ? 100 : currentMetrics.grossProfit < 0 ? -100 : 0;
 
     res.json({
       current: currentMetrics,

@@ -86,7 +86,13 @@ exports.createEmployee = async (req, res) => {
       req.body.employeeId = `EMP${String(count + 1).padStart(4, '0')}`;
     }
 
-    const employee = new Employee(req.body);
+    // Clean the data - handle empty manager field
+    const employeeData = { ...req.body };
+    if (employeeData.manager === '' || employeeData.manager === null) {
+      delete employeeData.manager; // Remove the field entirely if empty
+    }
+
+    const employee = new Employee(employeeData);
     await employee.save();
     
     const populatedEmployee = await Employee.findById(employee._id)
@@ -96,8 +102,21 @@ exports.createEmployee = async (req, res) => {
   } catch (err) {
     console.error("Error creating employee:", err);
     if (err.code === 11000) {
+      // Handle duplicate key errors with more specific messages
+      const duplicateField = Object.keys(err.keyValue)[0];
+      const duplicateValue = err.keyValue[duplicateField];
+      
+      let message = "Duplicate value found";
+      if (duplicateField === 'email') {
+        message = `An employee with email "${duplicateValue}" already exists`;
+      } else if (duplicateField === 'employeeId') {
+        message = `An employee with ID "${duplicateValue}" already exists`;
+      }
+      
       return res.status(400).json({ 
-        message: "Employee ID or email already exists",
+        message,
+        field: duplicateField,
+        value: duplicateValue,
         error: err.message 
       });
     }
@@ -109,10 +128,15 @@ exports.createEmployee = async (req, res) => {
 exports.updateEmployee = async (req, res) => {
   try {
     const employeeId = req.params.id;
-    const updateData = req.body;
+    const updateData = { ...req.body };
 
     console.log("Employee ID to update:", employeeId);
     console.log("Update data:", updateData);
+
+    // Clean the data - handle empty manager field
+    if (updateData.manager === '' || updateData.manager === null) {
+      updateData.manager = null; // Set to null for updates to clear the field
+    }
 
     const updatedEmployee = await Employee.findByIdAndUpdate(
       employeeId, 
