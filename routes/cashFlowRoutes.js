@@ -374,14 +374,14 @@ router.get("/debug/balance", auth, role("admin"), cashFlowController.getBalanceB
 // DEBUG: Compare completed orders vs product sales transactions
 router.get("/debug/orders-vs-transactions", auth, role("admin"), cashFlowController.compareOrdersVsTransactions);
 
-// DEBUG: Get recent transactions for debugging
+// DEBUG: Get all transactions for debugging
 router.get("/debug/recent", auth, role("admin"), async (req, res) => {
   try {
     const CashFlowTransaction = require("../models/cashFlowTransaction");
     
-    const recentTransactions = await CashFlowTransaction.find({})
+    // Get all transactions, sorted by date (most recent first)
+    const allTransactions = await CashFlowTransaction.find({})
       .sort({ date: -1 })
-      .limit(10)
       .select('type amount category description automated date');
     
     const totalCount = await CashFlowTransaction.countDocuments({});
@@ -391,7 +391,7 @@ router.get("/debug/recent", auth, role("admin"), async (req, res) => {
       totalTransactions: totalCount,
       manualTransactions: manualCount,
       automatedTransactions: totalCount - manualCount,
-      recentTransactions: recentTransactions.map(tx => ({
+      recentTransactions: allTransactions.map(tx => ({
         id: tx._id,
         type: tx.type,
         amount: tx.amount,

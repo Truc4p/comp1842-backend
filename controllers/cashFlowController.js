@@ -564,27 +564,46 @@ const syncOrdersToTransactions = async (req, res) => {
 };
 
 const syncAllDataToFlowTransactions = async (startDate, endDate) => {
-  return { message: "syncAllDataToFlowTransactions placeholder" };
-};
+  try {
+    console.log(`🔄 Syncing all data from ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+    
+    // This function would sync orders to cash flow transactions for the given date range
+    // For now, we'll use the existing syncOrdersToTransactions logic
+    const completedOrders = await Order.find({
+      status: 'completed',
+      orderDate: { $gte: startDate, $lte: endDate }
+    });
 
-const mapProductSalesRevenue = async (startDate, endDate) => {
-  return 0;
-};
+    let syncedCount = 0;
+    const results = [];
 
-const mapCostOfGoodsSold = async (startDate, endDate) => {
-  return 0;
-};
+    for (const order of completedOrders) {
+      // Check if transactions already exist for this order
+      const existingTransactions = await CashFlowTransaction.find({
+        orderId: order._id
+      });
 
-const mapShippingCosts = async (startDate, endDate) => {
-  return 0;
-};
+      if (existingTransactions.length === 0) {
+        const transactions = await generateTransactionFromOrder(order);
+        results.push({
+          orderId: order._id,
+          totalPrice: order.totalPrice,
+          transactions: transactions
+        });
+        syncedCount++;
+      }
+    }
 
-const mapOperatingExpenses = async (startDate, endDate) => {
-  return 0;
-};
-
-const mapRefunds = async (startDate, endDate) => {
-  return 0;
+    return {
+      syncedCount,
+      totalOrdersChecked: completedOrders.length,
+      results,
+      message: `Successfully synced ${syncedCount} orders to cash flow transactions`
+    };
+  } catch (error) {
+    console.error("Error in syncAllDataToFlowTransactions:", error);
+    throw error;
+  }
 };
 
 // Debug: Compare orders vs transactions
@@ -803,10 +822,5 @@ module.exports = {
   syncOrdersToTransactions,
   syncAllDataToFlowTransactions,
   getBalanceBreakdown,
-  compareOrdersVsTransactions,
-  mapProductSalesRevenue,
-  mapCostOfGoodsSold,
-  mapShippingCosts,
-  mapOperatingExpenses,
-  mapRefunds
+  compareOrdersVsTransactions
 };
