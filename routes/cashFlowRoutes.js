@@ -240,18 +240,18 @@ router.get("/dashboard-sync", auth, role("admin"), cashFlowController.getCashFlo
 router.post("/sync", auth, role("admin"), async (req, res) => {
   try {
     const { startDate, endDate } = req.body;
-    
+
     if (!startDate || !endDate) {
-      return res.status(400).json({ 
-        message: "Start date and end date are required" 
+      return res.status(400).json({
+        message: "Start date and end date are required"
       });
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     const results = await cashFlowController.syncAllDataToFlowTransactions(start, end);
-    
+
     res.json({
       success: true,
       results,
@@ -259,9 +259,9 @@ router.post("/sync", auth, role("admin"), async (req, res) => {
     });
   } catch (error) {
     console.error("Error in sync endpoint:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Internal server error during sync" 
+      message: "Internal server error during sync"
     });
   }
 });
@@ -314,9 +314,9 @@ router.post("/sync-orders", auth, role("admin"), cashFlowController.syncOrdersTo
 router.delete("/artificial-transactions", auth, role("admin"), async (req, res) => {
   try {
     const CashFlowTransaction = require("../models/cashFlowTransaction");
-    
+
     console.log("🧹 API: Removing artificial COGS and shipping transactions...");
-    
+
     // Find artificial transactions
     const artificialTransactions = await CashFlowTransaction.find({
       $or: [
@@ -324,9 +324,9 @@ router.delete("/artificial-transactions", auth, role("admin"), async (req, res) 
         { category: 'shipping_costs', automated: true }
       ]
     });
-    
+
     console.log(`🔍 Found ${artificialTransactions.length} artificial transactions`);
-    
+
     // Remove them
     const deleteResult = await CashFlowTransaction.deleteMany({
       $or: [
@@ -334,14 +334,14 @@ router.delete("/artificial-transactions", auth, role("admin"), async (req, res) 
         { category: 'shipping_costs', automated: true }
       ]
     });
-    
+
     // Get updated totals
     const remaining = await CashFlowTransaction.find({});
     const remainingInflows = remaining.filter(t => t.type === 'inflow').reduce((sum, t) => sum + t.amount, 0);
     const remainingOutflows = remaining.filter(t => t.type === 'outflow').reduce((sum, t) => sum + t.amount, 0);
-    
+
     console.log(`✅ API: Removed ${deleteResult.deletedCount} artificial transactions`);
-    
+
     res.json({
       success: true,
       message: "Artificial transactions removed successfully",
@@ -358,7 +358,7 @@ router.delete("/artificial-transactions", auth, role("admin"), async (req, res) 
         net: remainingInflows - remainingOutflows
       }
     });
-    
+
   } catch (error) {
     console.error("❌ API: Failed to remove artificial transactions:", error);
     res.status(500).json({
@@ -378,20 +378,35 @@ router.get("/debug/orders-vs-transactions", auth, role("admin"), cashFlowControl
 router.get("/debug/recent", auth, role("admin"), async (req, res) => {
   try {
     const CashFlowTransaction = require("../models/cashFlowTransaction");
-    
-    // Get all transactions, sorted by date (most recent first)
-    const allTransactions = await CashFlowTransaction.find({})
+
+    // Get period from query params, default to all transactions if not specified
+    const period = parseInt(req.query.period);
+    let dateFilter = {};
+
+    if (period && period > 0) {
+      const periodStart = new Date();
+      periodStart.setDate(periodStart.getDate() - period);
+      dateFilter = { date: { $gte: periodStart } };
+    }
+
+    // Get transactions filtered by period (if specified), sorted by date (most recent first)
+    const filteredTransactions = await CashFlowTransaction.find(dateFilter)
       .sort({ date: -1 })
       .select('type amount category description automated date');
-    
-    const totalCount = await CashFlowTransaction.countDocuments({});
-    const manualCount = await CashFlowTransaction.countDocuments({ automated: false });
-    
+
+    const totalCount = await CashFlowTransaction.countDocuments(dateFilter);
+    const manualCount = await CashFlowTransaction.countDocuments({
+      ...dateFilter,
+      automated: false
+    });
+
     res.json({
       totalTransactions: totalCount,
       manualTransactions: manualCount,
       automatedTransactions: totalCount - manualCount,
-      recentTransactions: allTransactions.map(tx => ({
+      period: period || 'all',
+      dateFilter: period ? `Last ${period} days` : 'All time',
+      recentTransactions: filteredTransactions.map(tx => ({
         id: tx._id,
         type: tx.type,
         amount: tx.amount,
