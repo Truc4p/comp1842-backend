@@ -474,3 +474,328 @@ exports.deleteFAQ = async (req, res) => {
     });
   }
 };
+
+// Staff Chat Functions
+
+// Connect customer to staff chat
+exports.connectToStaff = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    
+    console.log('🔍 Connect to staff called with user:', req.user);
+    
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Session ID is required",
+      });
+    }
+
+    // Find or create conversation
+    let conversation = await ChatConversation.findOne({ sessionId });
+    
+    if (!conversation) {
+      conversation = new ChatConversation({
+        sessionId,
+        userId: req.user?.id,
+        messages: [],
+      });
+      console.log('🔍 Created new conversation with userId:', req.user?.id);
+    } else {
+      // Update existing conversation with user ID if not set
+      if (!conversation.userId && req.user?.id) {
+        conversation.userId = req.user.id;
+        console.log('🔍 Updated existing conversation with userId:', req.user.id);
+      }
+    }
+
+    // Mark conversation as staff chat and active
+    conversation.isStaffChat = true;
+    conversation.isActive = true;
+    conversation.waitingForStaff = true;
+    
+    await conversation.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Connected to staff chat",
+      data: { sessionId }
+    });
+
+  } catch (error) {
+    console.error('Error connecting to staff:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error connecting to staff",
+      error: error.message,
+    });
+  }
+};
+
+// Customer sends message to staff
+exports.sendMessageToStaff = async (req, res) => {
+  try {
+    const { sessionId, message } = req.body;
+    
+    if (!sessionId || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "Session ID and message are required",
+      });
+    }
+
+    let conversation = await ChatConversation.findOne({ sessionId });
+    
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    // Add customer message
+    conversation.messages.push({
+      role: 'user',
+      content: message,
+      messageType: 'text',
+      timestamp: new Date()
+    });
+
+    // Mark as having unread messages for staff
+    conversation.hasUnreadFromCustomer = true;
+    conversation.lastActivity = new Date();
+    
+    await conversation.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Message sent to staff"
+    });
+
+  } catch (error) {
+    console.error('Error sending message to staff:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error sending message",
+      error: error.message,
+    });
+  }
+};
+
+// Get new messages for customer in staff chat
+exports.getStaffMessages = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { lastMessageTime } = req.query; // Optional parameter to track last seen message
+    
+    const conversation = await ChatConversation.findOne({ sessionId });
+    
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    // Get messages since last check
+    let recentMessages;
+    if (lastMessageTime) {
+      // Get messages newer than the last seen message
+      recentMessages = conversation.messages.filter(msg => 
+        msg.role === 'assistant' && 
+        msg.messageType === 'staff' &&
+        new Date(msg.timestamp) > new Date(lastMessageTime)
+      );
+    } else {
+      // Fallback: get messages from last 10 seconds (increased from 5 to reduce risk)
+      recentMessages = conversation.messages.filter(msg => 
+        msg.role === 'assistant' && 
+        msg.messageType === 'staff' &&
+        new Date(msg.timestamp) > new Date(Date.now() - 10000)
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { newMessages: recentMessages }
+    });
+
+  } catch (error) {
+    console.error('Error getting staff messages:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error getting messages",
+      error: error.message,
+    });
+  }
+};
+
+// Admin Functions for Staff Chat
+
+// Get all active customer chats for admin
+exports.getActiveChats = async (req, res) => {
+  try {
+    const conversations = await ChatConversation.find({ 
+      isStaffChat: true, 
+      isActive: true 
+    })
+    .populate('userId', 'username email firstName lastName')
+    .sort({ lastActivity: -1 })
+    .limit(50);
+
+    const activeChats = conversations.map(conv => {
+      const lastMessage = conv.messages.length > 0 ? 
+        conv.messages[conv.messages.length - 1].content : null;
+      
+      const unreadCount = conv.messages.filter(msg => 
+        msg.role === 'user' && 
+        new Date(msg.timestamp) > (conv.lastStaffRead || new Date(0))
+      ).length;
+
+      // Generate customer display name
+      let customerName = 'Anonymous Customer';
+      let customerEmail = null;
+      
+      if (conv.userId) {
+        if (conv.userId.firstName && conv.userId.lastName) {
+          customerName = `${conv.userId.firstName} ${conv.userId.lastName}`;
+        } else if (conv.userId.username) {
+          customerName = conv.userId.username;
+        } else {
+          customerName = `Customer ${conv.userId._id}`;
+        }
+        customerEmail = conv.userId.email;
+      }
+
+      return {
+        sessionId: conv.sessionId,
+        customerName,
+        customerEmail,
+        customerId: conv.userId?._id,
+        lastMessage: lastMessage ? 
+          (lastMessage.length > 50 ? lastMessage.substring(0, 50) + '...' : lastMessage) : 
+          'No messages yet',
+        lastActivity: conv.lastActivity,
+        unreadCount,
+        waitingForStaff: conv.waitingForStaff
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: activeChats
+    });
+
+  } catch (error) {
+    console.error('Error getting active chats:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error getting active chats",
+      error: error.message,
+    });
+  }
+};
+
+// Get messages for a specific chat (admin view)
+exports.getChatMessages = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const conversation = await ChatConversation.findOne({ sessionId })
+      .populate('userId', 'username email firstName lastName');
+    
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    // Update last staff read time
+    conversation.lastStaffRead = new Date();
+    await conversation.save();
+
+    // Generate customer display name
+    let customerInfo = { name: 'Anonymous Customer', email: null, id: null };
+    
+    if (conversation.userId) {
+      if (conversation.userId.firstName && conversation.userId.lastName) {
+        customerInfo.name = `${conversation.userId.firstName} ${conversation.userId.lastName}`;
+      } else if (conversation.userId.username) {
+        customerInfo.name = conversation.userId.username;
+      } else {
+        customerInfo.name = `Customer ${conversation.userId._id}`;
+      }
+      customerInfo.email = conversation.userId.email;
+      customerInfo.id = conversation.userId._id;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { 
+        messages: conversation.messages,
+        customer: customerInfo
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting chat messages:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error getting messages",
+      error: error.message,
+    });
+  }
+};
+
+// Staff replies to customer
+exports.staffReply = async (req, res) => {
+  try {
+    const { sessionId, message } = req.body;
+    
+    if (!sessionId || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "Session ID and message are required",
+      });
+    }
+
+    let conversation = await ChatConversation.findOne({ sessionId });
+    
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    // Add staff message
+    conversation.messages.push({
+      role: 'assistant',
+      content: message,
+      messageType: 'staff',
+      timestamp: new Date()
+    });
+
+    // Update conversation state
+    conversation.waitingForStaff = false;
+    conversation.hasUnreadFromCustomer = false;
+    conversation.lastActivity = new Date();
+    conversation.lastStaffRead = new Date();
+    
+    await conversation.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Reply sent successfully"
+    });
+
+  } catch (error) {
+    console.error('Error sending staff reply:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error sending reply",
+      error: error.message,
+    });
+  }
+};

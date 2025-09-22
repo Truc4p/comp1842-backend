@@ -4,7 +4,6 @@ const chatConversationSchema = new mongoose.Schema({
   sessionId: {
     type: String,
     required: true,
-    index: true,
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -27,7 +26,7 @@ const chatConversationSchema = new mongoose.Schema({
     },
     messageType: {
       type: String,
-      enum: ['text', 'predefined', 'ai'],
+      enum: ['text', 'predefined', 'ai', 'staff'],
       default: 'text',
     },
     metadata: {
@@ -46,6 +45,28 @@ const chatConversationSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true,
+  },
+  // Staff chat specific fields
+  isStaffChat: {
+    type: Boolean,
+    default: false,
+  },
+  waitingForStaff: {
+    type: Boolean,
+    default: false,
+  },
+  hasUnreadFromCustomer: {
+    type: Boolean,
+    default: false,
+  },
+  lastStaffRead: {
+    type: Date,
+    default: null,
+  },
+  assignedStaff: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: false,
   },
   lastActivity: {
     type: Date,

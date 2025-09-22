@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const chatController = require("../controllers/chatController");
 const authenticateToken = require("../middleware/auth");
+const optionalAuth = require("../middleware/optionalAuth");
 
 /**
  * @swagger
@@ -282,5 +283,136 @@ router.put("/admin/faq/:faqId", authenticateToken, chatController.updateFAQ);
  *         description: FAQ not found
  */
 router.delete("/admin/faq/:faqId", authenticateToken, chatController.deleteFAQ);
+
+// Staff chat routes for customers
+/**
+ * @swagger
+ * /chat/staff/connect:
+ *   post:
+ *     summary: Connect customer to staff chat
+ *     tags: [Staff Chat]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionId
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Connected to staff chat
+ */
+router.post("/staff/connect", optionalAuth, chatController.connectToStaff);
+
+/**
+ * @swagger
+ * /chat/staff/message:
+ *   post:
+ *     summary: Customer sends message to staff
+ *     tags: [Staff Chat]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionId
+ *               - message
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Message sent to staff
+ */
+router.post("/staff/message", optionalAuth, chatController.sendMessageToStaff);
+
+/**
+ * @swagger
+ * /chat/staff/messages/{sessionId}:
+ *   get:
+ *     summary: Get new staff messages for customer
+ *     tags: [Staff Chat]
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: New staff messages
+ */
+router.get("/staff/messages/:sessionId", chatController.getStaffMessages);
+
+// Admin routes for staff chat management
+/**
+ * @swagger
+ * /chat/admin/active-chats:
+ *   get:
+ *     summary: Get all active customer chats (Admin only)
+ *     tags: [Staff Chat Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of active customer chats
+ */
+router.get("/admin/active-chats", authenticateToken, chatController.getActiveChats);
+
+/**
+ * @swagger
+ * /chat/admin/messages/{sessionId}:
+ *   get:
+ *     summary: Get messages for a specific chat (Admin only)
+ *     tags: [Staff Chat Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Chat messages
+ */
+router.get("/admin/messages/:sessionId", authenticateToken, chatController.getChatMessages);
+
+/**
+ * @swagger
+ * /chat/admin/reply:
+ *   post:
+ *     summary: Staff replies to customer (Admin only)
+ *     tags: [Staff Chat Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - sessionId
+ *               - message
+ *             properties:
+ *               sessionId:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Reply sent successfully
+ */
+router.post("/admin/reply", authenticateToken, chatController.staffReply);
 
 module.exports = router;
