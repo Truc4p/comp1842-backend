@@ -415,4 +415,41 @@ router.get("/admin/messages/:sessionId", authenticateToken, chatController.getCh
  */
 router.post("/admin/reply", authenticateToken, chatController.staffReply);
 
+/**
+ * @swagger
+ * /chat/find-user-conversation:
+ *   get:
+ *     summary: Find existing conversation for authenticated user
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User's existing conversation found or null if none exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     conversation:
+ *                       type: object
+ *                       nullable: true
+ *                       properties:
+ *                         sessionId:
+ *                           type: string
+ *                         isStaffChat:
+ *                           type: boolean
+ *                         waitingForStaff:
+ *                           type: boolean
+ *                         lastActivity:
+ *                           type: string
+ *                           format: date-time
+ */
+router.get("/find-user-conversation", optionalAuth, chatController.findUserConversation);
+
 module.exports = router;

@@ -17,11 +17,11 @@ function generateUUID() {
 // Initialize Gemini API
 if (!process.env.GEMINI_API_KEY) {
   console.error('GEMINI_API_KEY environment variable is required');
-  throw new Error('GEMINI_API_KEY environment variable is not set');
+  throw new Error('_API_KEY environment variable is not set');
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-8b" });
 
 // Flow 1: Get predefined FAQs (menu-driven)
 exports.getFAQs = async (req, res) => {
@@ -149,7 +149,16 @@ exports.getConversationHistory = async (req, res) => {
     if (!conversation) {
       return res.status(200).json({
         success: true,
-        data: { messages: [] },
+        data: { 
+          messages: [],
+          conversationState: {
+            isStaffChat: false,
+            waitingForStaff: false,
+            isActive: true,
+            hasUnreadFromCustomer: false,
+            assignedStaff: null
+          }
+        },
       });
     }
 
@@ -167,7 +176,17 @@ exports.getConversationHistory = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: { messages },
+      data: { 
+        messages,
+        // Include conversation state information
+        conversationState: {
+          isStaffChat: conversation.isStaffChat,
+          waitingForStaff: conversation.waitingForStaff,
+          isActive: conversation.isActive,
+          hasUnreadFromCustomer: conversation.hasUnreadFromCustomer,
+          assignedStaff: conversation.assignedStaff
+        }
+      },
     });
   } catch (error) {
     res.status(500).json({
@@ -780,7 +799,8 @@ exports.staffReply = async (req, res) => {
     // Update conversation state
     conversation.waitingForStaff = false;
     conversation.hasUnreadFromCustomer = false;
-    conversation.lastActivity = new Date();
+    // Don't update lastActivity for staff replies to prevent moving chat to top
+    // conversation.lastActivity = new Date();
     conversation.lastStaffRead = new Date();
     
     await conversation.save();
@@ -795,6 +815,42 @@ exports.staffReply = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error sending reply",
+      error: error.message,
+    });
+  }
+};
+
+// Find existing conversation for a user (to recover lost sessions)
+exports.findUserConversation = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(200).json({
+        success: true,
+        data: { conversation: null }
+      });
+    }
+
+    // Find the most recent active conversation for this user
+    const conversation = await ChatConversation.findOne({ 
+      userId: userId,
+      isActive: true,
+      lastActivity: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Within last 24 hours
+    })
+    .sort({ lastActivity: -1 })
+    .select('sessionId isStaffChat waitingForStaff lastActivity');
+
+    res.status(200).json({
+      success: true,
+      data: { conversation }
+    });
+
+  } catch (error) {
+    console.error('Error finding user conversation:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error finding conversation",
       error: error.message,
     });
   }

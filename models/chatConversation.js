@@ -78,9 +78,13 @@ const chatConversationSchema = new mongoose.Schema({
   },
 });
 
-// Update lastActivity on save
+// Update lastActivity on save only if it was explicitly modified
 chatConversationSchema.pre('save', function(next) {
-  this.lastActivity = Date.now();
+  // Only update lastActivity if it was explicitly modified in the code
+  // This prevents automatic updates when just updating other fields like lastStaffRead
+  if (this.isModified('lastActivity') && this.lastActivity !== undefined) {
+    this.lastActivity = this.lastActivity; // Keep the explicitly set value
+  }
   next();
 });
 
