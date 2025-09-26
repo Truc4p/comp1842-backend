@@ -618,6 +618,17 @@ exports.sendMessageToStaff = async (req, res) => {
     
     await conversation.save();
 
+    // Send message to connected admins via WebSocket
+    const wsManager = req.app.locals.wsManager;
+    if (wsManager) {
+      const sent = await wsManager.broadcastCustomerMessage(sessionId, message);
+      if (sent) {
+        console.log(`✅ Customer message broadcasted to admins for session: ${sessionId}`);
+      } else {
+        console.log(`⚠️ No admins connected via WebSocket for session: ${sessionId}`);
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: "Message sent to staff"
@@ -836,6 +847,17 @@ exports.staffReply = async (req, res) => {
     conversation.lastStaffRead = new Date();
     
     await conversation.save();
+
+    // Send message via WebSocket if customer is connected
+    const wsManager = req.app.locals.wsManager;
+    if (wsManager) {
+      const sent = await wsManager.sendStaffReply(sessionId, message);
+      if (sent) {
+        console.log(`✅ Staff reply sent via WebSocket to session: ${sessionId}`);
+      } else {
+        console.log(`⚠️ Customer not connected via WebSocket for session: ${sessionId}`);
+      }
+    }
 
     res.status(200).json({
       success: true,
