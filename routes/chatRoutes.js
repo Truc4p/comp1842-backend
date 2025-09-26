@@ -452,4 +452,37 @@ router.post("/admin/reply", authenticateToken, chatController.staffReply);
  */
 router.get("/find-user-conversation", optionalAuth, chatController.findUserConversation);
 
+/**
+ * @swagger
+ * /chat/conversation/{sessionId}:
+ *   delete:
+ *     summary: Clear conversation history
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Session ID of the conversation to clear
+ *     responses:
+ *       200:
+ *         description: Conversation cleared successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     cleared:
+ *                       type: boolean
+ */
+router.delete("/conversation/:sessionId", chatController.clearConversation);
+
 module.exports = router;

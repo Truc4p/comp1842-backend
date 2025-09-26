@@ -494,6 +494,38 @@ exports.deleteFAQ = async (req, res) => {
   }
 };
 
+// Clear conversation history
+exports.clearConversation = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Session ID is required",
+      });
+    }
+
+    // Delete the conversation from the database
+    const deletedConversation = await ChatConversation.findOneAndDelete({ sessionId });
+
+    res.json({
+      success: true,
+      message: "Conversation cleared successfully",
+      data: {
+        cleared: !!deletedConversation
+      }
+    });
+  } catch (error) {
+    console.error("Error clearing conversation:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error clearing conversation",
+      error: error.message,
+    });
+  }
+};
+
 // Staff Chat Functions
 
 // Connect customer to staff chat
